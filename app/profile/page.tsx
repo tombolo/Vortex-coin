@@ -8,7 +8,7 @@ import { FaUserCircle, FaArrowLeft, FaCoins, FaEnvelope, FaSignOutAlt } from "re
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import "./Profile.css";
 
-const Profile = ({ balance }) => {
+const Profile = () => {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);

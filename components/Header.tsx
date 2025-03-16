@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import "./Header.css";
 import { FaUserCircle } from "react-icons/fa"; 
 
-const Header = ({ isLoggedIn, balance }) => {
+interface HeaderProps {
+  isLoggedIn: boolean;
+  balance: number;
+}
+
+const Header: React.FC<HeaderProps> = ({ isLoggedIn, balance }) => {
   const router = useRouter();
 
   return (
