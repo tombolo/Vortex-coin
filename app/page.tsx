@@ -20,6 +20,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('free');
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
 
+  const packageKeys = ['premium1', 'premium2', 'premium3', 'premium4'] as const;
+  type PackageKey = typeof packageKeys[number];
+
   const packages = {
     free: {
       name: "Free Package",
@@ -262,32 +265,45 @@ export default function Home() {
               <h3 className="text-2xl font-semibold mb-6">Premium Packages</h3>
               <p className="text-gray-300 mb-8">Upgrade your experience with these premium packages and earn more coins!</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {['premium1', 'premium2', 'premium3', 'premium4'].map((pkg) => (
-                  <div key={pkg} className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl p-6 border border-purple-900/50 hover:border-purple-500 transition-all hover:scale-105">
-                    <h4 className="text-xl font-bold mb-2">{packages[pkg].name}</h4>
-                    <div className="text-3xl font-bold mb-4 text-purple-400">
-                      ${packages[pkg].price}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {packageKeys.map((pkg: PackageKey) => (
+                    <div
+                      key={pkg}
+                      className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl p-6 border border-purple-900/50 hover:border-purple-500 transition-all hover:scale-105"
+                    >
+                      <h4 className="text-xl font-bold mb-2">{packages[pkg].name}</h4>
+                      <div className="text-3xl font-bold mb-4 text-purple-400">
+                        ${packages[pkg].price}
+                      </div>
+                      <div className="text-lg mb-6">
+                        <span className="text-yellow-400">{packages[pkg].coins} coins</span>
+                      </div>
+                      <ul className="space-y-2 mb-6">
+                        {packages[pkg].features.map((feature, i) => (
+                          <li key={i} className="flex items-center text-gray-300">
+                            <svg
+                              className="w-4 h-4 mr-2 text-green-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 13l4 4L19 7"
+                              ></path>
+                            </svg>
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                      <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                        Purchase Now
+                      </button>
                     </div>
-                    <div className="text-lg mb-6">
-                      <span className="text-yellow-400">{packages[pkg].coins} coins</span>
-                    </div>
-                    <ul className="space-y-2 mb-6">
-                      {packages[pkg].features.map((feature, i) => (
-                        <li key={i} className="flex items-center text-gray-300">
-                          <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-medium hover:opacity-90 transition-opacity">
-                      Purchase Now
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
             </div>
           )}
         </div>
