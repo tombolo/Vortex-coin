@@ -1,12 +1,11 @@
 'use client';
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebaseConfig";
-import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
-import Header from "../components/Header";
-import "../components/Header.css";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { FaUserCircle, FaBars, FaTimes, FaHome, FaTasks, FaDollarSign, FaQuestionCircle, FaChartLine, FaBell, FaRocket } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 import "./ProgressBar.css";
-import Image from "next/image";
 
 export default function Home() {
   const [balance, setBalance] = useState(0);
@@ -15,7 +14,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
-  const [profileCompletion, setProfileCompletion] = useState(35);
+  const [userData, setUserData] = useState<any>(null);
   const [pendingPayments, setPendingPayments] = useState(0);
   type Payout = {
     date: string | number | Date;
@@ -29,6 +28,22 @@ export default function Home() {
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [taskProgress, setTaskProgress] = useState(0);
   const [taskTimer, setTaskTimer] = useState<NodeJS.Timeout | null>(null);
+  const router = useRouter();
+
+  // Calculate completion percentage (same as profile page)
+  const calculateCompletion = () => {
+    if (!userData) return 0;
+
+    let completed = 0;
+    const total = 4; // ID, CV, Bank, Profile info
+
+    if (userData.idStatus === 'verified') completed++;
+    if (userData.cvStatus === 'verified') completed++;
+    if (userData.bankConnected) completed++;
+    if (userData.name && userData.email) completed++;
+
+    return Math.round((completed / total) * 100);
+  };
 
   // Sample projects data
   const activeProjects = [
@@ -49,7 +64,7 @@ export default function Home() {
       category: "Survey",
       description: "Share basic demographic information for research purposes",
       steps: 5,
-      duration: 60 // seconds to complete
+      duration: 60
     },
     {
       id: 'product_feedback',
@@ -153,10 +168,9 @@ export default function Home() {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
+          setUserData(data); // Store complete user data
           setBalance(data.balance || 0);
           setCompletedTasks(data.completedTasks || []);
-          setProfileCompletion(data.profileCompletion || 35);
-          // Pending payments should be the amount on balance
           setPendingPayments(data.balance || 0);
           setRecentPayouts(data.recentPayouts || []);
           setWithdrawnAmount(data.withdrawnAmount || 0);
@@ -165,17 +179,27 @@ export default function Home() {
         setIsLoggedIn(false);
         setUserId(null);
         setUsername("");
+        setUserData(null);
       }
       setIsLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   const startTask = (taskId: string, duration: number) => {
     setActiveTask(taskId);
     setTaskProgress(0);
 
-    const interval = 100; // Update progress every 100ms
+    const interval = 100;
     const totalSteps = duration / (interval / 1000);
     let currentStep = 0;
 
@@ -215,12 +239,10 @@ export default function Home() {
         await updateDoc(userRef, {
           balance: balance + task.reward,
           completedTasks: [...completedTasks, taskId],
-          // Pending payments should be the updated balance
           pendingPayments: balance + task.reward
         });
 
         setBalance(balance + task.reward);
-        // Update pending payments to match the new balance
         setPendingPayments(balance + task.reward);
         setCompletedTasks([...completedTasks, taskId]);
       }
@@ -236,398 +258,503 @@ export default function Home() {
     }
   };
 
-  // Calculate total earnings (balance + withdrawn amount)
   const totalEarnings = balance + withdrawnAmount;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col md:flex-row">
-      {/* Mobile menu button */}
-      <div className="md:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-md bg-blue-600 text-white"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-          </svg>
-        </button>
-      </div>
-
-      {/* Sidebar */}
-      <div className={`w-64 bg-white shadow-md fixed h-full z-40 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static`}>
-        <div className="p-5 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-blue-600">TaskForge</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 text-gray-800 flex flex-col">
+      {/* Modern Header */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-200/50 px-6 py-4 flex justify-between items-center shadow-sm">
+        <div className="flex items-center space-x-3">
+          <FaRocket className="text-2xl text-indigo-600" />
+          <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            TaskForge
+          </span>
         </div>
-        <nav className="mt-6">
-          <div
-            className={`p-4 flex items-center cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-            onClick={() => {
-              setActiveTab('dashboard');
-              setSidebarOpen(false);
-            }}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-            </svg>
-            Dashboard
-          </div>
-          <div
-            className={`p-4 flex items-center cursor-pointer ${activeTab === 'tasks' ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-            onClick={() => {
-              setActiveTab('tasks');
-              setSidebarOpen(false);
-            }}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-            </svg>
-            Available Tasks
-          </div>
-          <div
-            className={`p-4 flex items-center cursor-pointer ${activeTab === 'balance' ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-            onClick={() => {
-              setActiveTab('balance');
-              setSidebarOpen(false);
-            }}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            Balance
-          </div>
-          <div
-            className={`p-4 flex items-center cursor-pointer ${activeTab === 'support' ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-            onClick={() => {
-              setActiveTab('support');
-              setSidebarOpen(false);
-            }}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-            Support
-          </div>
-        </nav>
-      </div>
 
-      {/* Overlay for mobile when sidebar is open */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 p-4 md:p-8 md:ml-0">
-        
-
-        {activeTab === 'dashboard' && (
-          <div className="mt-10">
-            <h1 className="text-2xl font-bold mb-6">Welcome back, {username}!</h1>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Your Active Projects */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Your Active Projects</h2>
-                <div className="space-y-4">
-                  {activeProjects.map(project => (
-                    <div key={project.id} className="border border-gray-200 rounded-md p-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium text-sm md:text-base">{project.name}</h3>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{project.category}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${project.progress}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">{project.progress}% complete</p>
-                    </div>
-                  ))}
-                </div>
+        <div className="flex items-center space-x-4">
+          {isLoggedIn ? (
+            <>
+              <div className="hidden md:flex items-center space-x-2 bg-indigo-50 px-4 py-2 rounded-full">
+                <span className="text-sm font-medium text-indigo-700">${balance.toFixed(2)}</span>
               </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => router.push("/profile")}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <FaUserCircle className="text-2xl text-indigo-600" />
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => router.push("/login")}
+                className="px-5 py-2 rounded-full text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors border border-indigo-200 hover:border-indigo-300"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => router.push("/signup")}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+              >
+                Sign Up
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
 
-              {/* Your Account */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Your Account</h2>
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Profile Completion</span>
-                    <span className="text-sm text-gray-500">{profileCompletion}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: `${profileCompletion}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Complete your profile to unlock more tasks and higher pay rates.
-                  </p>
-                </div>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-                  Complete Profile
+      <div className="flex flex-1">
+        {/* Mobile menu button */}
+        <div className="md:hidden fixed top-20 right-6 z-50">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          >
+            {sidebarOpen ? <FaTimes className="text-indigo-600" /> : <FaBars className="text-indigo-600" />}
+          </button>
+        </div>
+
+        {/* Sidebar */}
+        <div className={`w-80 bg-white/95 backdrop-blur-md fixed h-full z-40 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static shadow-xl`}>
+          <nav className="p-6">
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">Navigation</h2>
+              <div className="space-y-2">
+                <button
+                  onClick={() => { setActiveTab('dashboard'); setSidebarOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'dashboard'
+                      ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-100 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                    }`}
+                >
+                  <FaHome className={`${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                  <span>Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('tasks'); setSidebarOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'tasks'
+                      ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-100 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                    }`}
+                >
+                  <FaTasks className={`${activeTab === 'tasks' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                  <span>Available Tasks</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('balance'); setSidebarOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'balance'
+                      ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-100 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                    }`}
+                >
+                  <FaDollarSign className={`${activeTab === 'balance' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                  <span>Earnings</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('support'); setSidebarOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'support'
+                      ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-100 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                    }`}
+                >
+                  <FaQuestionCircle className={`${activeTab === 'support' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                  <span>Support</span>
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Your Pay */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Your Pay</h2>
-                <div className="mb-4 p-4 bg-gray-50 rounded-md">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Available Balance</h3>
-                  <p className="text-2xl font-bold text-green-600">${balance.toFixed(2)}</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-md">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Pending Payments</h3>
-                  <p className="text-xl font-semibold">${pendingPayments.toFixed(2)}</p>
-                  <p className="text-xs text-gray-500 mt-1">Will be processed within 3-5 business days</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-md mt-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Recent Payouts</h3>
-                  {recentPayouts.length > 0 ? (
-                    <ul className="space-y-2">
-                      {recentPayouts.map((payout, index) => (
-                        <li key={index} className="flex justify-between text-sm">
-                          <span>{new Date(payout.date).toLocaleDateString()}</span>
-                          <span className="font-medium">${payout.amount.toFixed(2)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-500">No recent payouts</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Referral Program */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Invite your friends</h2>
-                <p className="text-sm text-gray-600 mb-4">
-                  Refer your friends to apply to be AI trainers! After both you and your referral earn $150 on TaskForge from the date of the referral, you'll each receive a $100 incentive.
-                </p>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
-                  <p className="text-xs text-yellow-800">For the moment we are validating our 1000+ requests, get back soon!</p>
-                </div>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-                  View Your Referrals
-                </button>
-              </div>
-            </div>
-
-            {/* Help Center */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
-              <h2 className="text-lg font-semibold mb-4">Help Center</h2>
-              <p className="text-sm text-gray-600 mb-4">Guides, tasking tips and tricks, support forums, and more!</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <a href="#" className="text-center p-4 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                  <svg className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                  <span className="text-sm font-medium">Guides</span>
-                </a>
-                <a href="#" className="text-center p-4 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                  <svg className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                  </svg>
-                  <span className="text-sm font-medium">Tips & Tricks</span>
-                </a>
-                <a href="#" className="text-center p-4 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                  <svg className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                  </svg>
-                  <span className="text-sm font-medium">Forums</span>
-                </a>
-                <a href="#" className="text-center p-4 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                  <svg className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <span className="text-sm font-medium">FAQ</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'tasks' && (
-          <div className="mt-8">
-            <h1 className="text-2xl font-bold mb-6">Available Tasks</h1>
-
-            {activeTask && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                  <h2 className="text-xl font-bold mb-4">Task in Progress</h2>
-                  <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
-                    <div
-                      className="bg-blue-600 h-4 rounded-full transition-all duration-100"
-                      style={{ width: `${taskProgress}%` }}
-                    ></div>
+            {isLoggedIn && (
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                    <FaUserCircle className="text-3xl text-indigo-600" />
                   </div>
-                  <p className="text-center mb-4">Completing task... {Math.round(taskProgress)}%</p>
-                  <button
-                    onClick={cancelTask}
-                    className="w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700"
-                  >
-                    Cancel Task
-                  </button>
+                  <h3 className="font-semibold text-indigo-900">{username}</h3>
+                  <p className="text-sm text-indigo-600 mt-1">Welcome back!</p>
+                  <div className="mt-3 bg-white rounded-full px-3 py-1 inline-flex items-center space-x-1">
+                    <FaDollarSign className="text-emerald-500 text-sm" />
+                    <span className="text-sm font-medium text-emerald-700">${balance.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             )}
+          </nav>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {availableTasks.map(task => (
-                <div key={task.id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                  <div className="flex flex-col md:flex-row justify-between items-start mb-4">
-                    <div className="mb-3 md:mb-0">
-                      <h2 className="text-lg font-semibold">{task.title}</h2>
-                      <p className="text-sm text-gray-600 mt-1">{task.description}</p>
-                    </div>
-                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full self-start md:self-auto">
-                      {task.category}
-                    </span>
+        {/* Overlay for mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/20 z-30 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 p-6 md:p-8 overflow-auto">
+          {activeTab === 'dashboard' && (
+            <div className="space-y-8">
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, {username}! 👋</h1>
+                <p className="text-gray-600">Here's what's happening with your tasks today</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">Active Projects</h2>
+                    <span className="text-sm text-indigo-600 font-medium">{activeProjects.length} projects</span>
                   </div>
+                  <div className="space-y-4">
+                    {activeProjects.map(project => (
+                      <div key={project.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-center mb-3">
+                          <h3 className="font-medium text-gray-900">{project.name}</h3>
+                          <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">{project.category}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+                          <div
+                            className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${project.progress}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-500">{project.progress}% complete</span>
+                          <span className="text-xs text-indigo-600 font-medium">View</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                  <div className="flex flex-col md:flex-row justify-between items-center gap-3">
-                    <div className="flex items-center space-x-4">
-                      <span className="text-green-600 font-bold">${task.reward.toFixed(2)}</span>
-                      <span className="text-sm text-gray-500">{task.timeEstimate}</span>
-                      <span className="text-sm text-gray-400">{task.steps} steps</span>
+                <div className="space-y-8">
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile Progress</h2>
+                    <div className="text-center">
+                      <div className="relative w-32 h-32 mx-auto mb-4">
+                        <svg className="w-full h-full" viewBox="0 0 100 100">
+                          <circle
+                            className="text-gray-100 stroke-current"
+                            strokeWidth="10"
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="transparent"
+                          />
+                          <circle
+                            className="text-indigo-500 stroke-current"
+                            strokeWidth="10"
+                            strokeLinecap="round"
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="transparent"
+                            strokeDasharray="251.2"
+                            strokeDashoffset={251.2 * (1 - calculateCompletion() / 100)}
+                            transform="rotate(-90 50 50)"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-2xl font-bold text-indigo-700">{calculateCompletion()}%</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 text-sm mb-4">Complete your profile to unlock more opportunities</p>
+                      <button
+                        onClick={() => router.push("/profile")}
+                        className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white py-3 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        Complete Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Earnings Overview</h2>
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-gray-600">Available Balance</span>
+                        <FaDollarSign className="text-emerald-500" />
+                      </div>
+                      <p className="text-2xl font-bold text-emerald-700">${balance.toFixed(2)}</p>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-gray-600">Pending Payments</span>
+                        <FaBell className="text-amber-500" />
+                      </div>
+                      <p className="text-xl font-semibold text-gray-900">${pendingPayments.toFixed(2)}</p>
+                      <p className="text-xs text-gray-500 mt-1">Processing in 3-5 business days</p>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 rounded-xl text-white">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm">Total Earnings</span>
+                        <FaChartLine />
+                      </div>
+                      <p className="text-2xl font-bold">${totalEarnings.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Activity</h2>
+                  <div className="space-y-3">
+                    {recentPayouts.length > 0 ? (
+                      recentPayouts.slice(0, 3).map((payout, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-900">${payout.amount.toFixed(2)}</p>
+                            <p className="text-sm text-gray-500">{new Date(payout.date).toLocaleDateString()}</p>
+                          </div>
+                          <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full">Completed</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <FaDollarSign className="text-4xl text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500">No recent activity</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'tasks' && (
+            <div className="space-y-8">
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Available Tasks</h1>
+                <p className="text-gray-600">Complete tasks and earn rewards</p>
+              </div>
+
+              {/* Task progress modal */}
+              {activeTask && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+                    <h2 className="text-xl font-bold mb-4 text-center">Task in Progress</h2>
+                    <div className="w-full bg-gray-100 rounded-full h-3 mb-4">
+                      <div
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-100"
+                        style={{ width: `${taskProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-center mb-6 text-gray-600">Completing... {Math.round(taskProgress)}%</p>
+                    <button
+                      onClick={cancelTask}
+                      className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-medium transition-colors"
+                    >
+                      Cancel Task
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {availableTasks.map(task => (
+                  <div key={task.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-semibold text-lg text-gray-900 mb-2">{task.title}</h3>
+                        <p className="text-gray-600 text-sm">{task.description}</p>
+                      </div>
+                      <span className="bg-indigo-100 text-indigo-800 text-xs px-3 py-1 rounded-full">
+                        {task.category}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-4">
+                        <span className="text-2xl font-bold text-emerald-600">${task.reward.toFixed(2)}</span>
+                        <span className="text-sm text-gray-500">{task.timeEstimate}</span>
+                      </div>
+                      <span className="text-xs text-gray-400">{task.steps} steps</span>
                     </div>
 
                     <button
                       onClick={() => startTask(task.id, task.duration)}
                       disabled={completedTasks.includes(task.id) || activeTask !== null}
-                      className={`px-4 py-2 rounded-md text-sm font-medium w-full md:w-auto ${completedTasks.includes(task.id)
-                        ? 'bg-green-100 text-green-800 cursor-not-allowed'
-                        : activeTask !== null
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                      className={`w-full py-3 rounded-xl font-medium transition-all duration-200 ${completedTasks.includes(task.id)
+                          ? 'bg-emerald-100 text-emerald-800 cursor-not-allowed'
+                          : activeTask !== null
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-sm hover:shadow-md'
+                        }`}
                     >
-                      {completedTasks.includes(task.id) ? 'Completed' : 'Start Task'}
+                      {completedTasks.includes(task.id) ? 'Completed ✓' : 'Start Task'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'balance' && (
+            <div className="space-y-8">
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Earnings & Balance</h1>
+                <p className="text-gray-600">Track your earnings and payment history</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-2xl text-center border border-indigo-100">
+                  <div className="text-3xl font-bold text-emerald-700 mb-2">${balance.toFixed(2)}</div>
+                  <div className="text-sm text-indigo-600">Available Balance</div>
+                </div>
+
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-2xl text-center border border-amber-100">
+                  <div className="text-3xl font-bold text-amber-700 mb-2">${pendingPayments.toFixed(2)}</div>
+                  <div className="text-sm text-amber-600">Pending Payments</div>
+                </div>
+
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 rounded-2xl text-center text-white">
+                  <div className="text-3xl font-bold mb-2">${totalEarnings.toFixed(2)}</div>
+                  <div className="text-sm text-indigo-100">Total Earnings</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Payout History</h2>
+                {recentPayouts.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {recentPayouts.map((payout, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(payout.date).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {payout.description || "Task Completion"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
+                              ${payout.amount.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800">
+                                Completed
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FaDollarSign className="text-4xl text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No payout history yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Complete tasks to see your earnings here</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'support' && (
+            <div className="space-y-8">
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Support Center</h1>
+                <p className="text-gray-600">Get help and find resources</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Get Help</h2>
+                  <div className="space-y-4">
+                    <button className="w-full flex items-center space-x-4 p-4 rounded-xl border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition-all duration-200">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaQuestionCircle className="text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900">Contact Support</h3>
+                        <p className="text-sm text-gray-600">Get direct help from our team</p>
+                      </div>
+                    </button>
+
+                    <button className="w-full flex items-center space-x-4 p-4 rounded-xl border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition-all duration-200">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaHome className="text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900">FAQ</h3>
+                        <p className="text-sm text-gray-600">Find answers to common questions</p>
+                      </div>
+                    </button>
+
+                    <button className="w-full flex items-center space-x-4 p-4 rounded-xl border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition-all duration-200">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaUserCircle className="text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900">Community Forums</h3>
+                        <p className="text-sm text-gray-600">Connect with other taskers</p>
+                      </div>
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'balance' && (
-          <div className="mt-8">
-            <h1 className="text-2xl font-bold mb-6">Earnings & Balance</h1>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Resources</h2>
+                  <div className="space-y-4">
+                    <button className="w-full flex items-center space-x-4 p-4 rounded-xl border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition-all duration-200">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaTasks className="text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900">Tasker Guidelines</h3>
+                        <p className="text-sm text-gray-600">Best practices and rules</p>
+                      </div>
+                    </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">${balance.toFixed(2)}</div>
-                <div className="text-sm text-gray-600">Available Balance</div>
-              </div>
+                    <button className="w-full flex items-center space-x-4 p-4 rounded-xl border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition-all duration-200">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaChartLine className="text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900">Tips & Best Practices</h3>
+                        <p className="text-sm text-gray-600">Maximize your earnings</p>
+                      </div>
+                    </button>
 
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
-                <div className="text-3xl font-bold text-amber-600 mb-2">${pendingPayments.toFixed(2)}</div>
-                <div className="text-sm text-gray-600">Pending Payments</div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">${totalEarnings.toFixed(2)}</div>
-                <div className="text-sm text-gray-600">Total Earnings</div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold mb-4">Payout History</h2>
-              {recentPayouts.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {recentPayouts.map((payout, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(payout.date).toLocaleDateString()}</td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{payout.description}</td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${payout.amount.toFixed(2)}</td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              Completed
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">No payout history yet</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'support' && (
-          <div className="mt-8">
-            <h1 className="text-2xl font-bold mb-6">Support Center</h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Get Help</h2>
-                <div className="space-y-4">
-                  <a href="#" className="flex items-center p-3 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                    <svg className="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    <span>Contact Support</span>
-                  </a>
-                  <a href="#" className="flex items-center p-3 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                    <svg className="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span>FAQ</span>
-                  </a>
-                  <a href="#" className="flex items-center p-3 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                    <svg className="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    <span>Community Forums</span>
-                  </a>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Resources</h2>
-                <div className="space-y-4">
-                  <a href="#" className="flex items-center p-3 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                    <svg className="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <span>Tasker Guidelines</span>
-                  </a>
-                  <a href="#" className="flex items-center p-3 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                    <svg className="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                    <span>Tips & Best Practices</span>
-                  </a>
-                  <a href="#" className="flex items-center p-3 border border-gray-200 rounded-md hover:bg-blue-50 transition-colors">
-                    <svg className="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span>Video Tutorials</span>
-                  </a>
+                    <button className="w-full flex items-center space-x-4 p-4 rounded-xl border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition-all duration-200">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <FaRocket className="text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900">Video Tutorials</h3>
+                        <p className="text-sm text-gray-600">Learn with video guides</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
