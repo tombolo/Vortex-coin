@@ -17,7 +17,12 @@ export default function Home() {
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [profileCompletion, setProfileCompletion] = useState(35);
   const [pendingPayments, setPendingPayments] = useState(0);
-  const [recentPayouts, setRecentPayouts] = useState([]);
+  type Payout = {
+    date: string | number | Date;
+    amount: number;
+    description?: string;
+  };
+  const [recentPayouts, setRecentPayouts] = useState<Payout[]>([]);
   const [username, setUsername] = useState("");
   const [withdrawnAmount, setWithdrawnAmount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
