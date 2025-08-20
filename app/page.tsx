@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { FaUserCircle, FaBars, FaTimes, FaHome, FaTasks, FaDollarSign, FaQuestionCircle, FaChartLine, FaBell, FaRocket, FaBrain, FaUsers, FaLightbulb, FaChild } from "react-icons/fa";
+import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { FaUserCircle, FaBars, FaTimes, FaHome, FaTasks, FaDollarSign, FaQuestionCircle, FaChartLine, FaBell, FaRocket, FaBrain, FaUsers, FaLightbulb, FaChild, FaClock, FaCheckCircle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -15,18 +15,31 @@ export default function Home() {
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [pendingPayments, setPendingPayments] = useState(0);
+
   type Payout = {
     date: string | number | Date;
     amount: number;
     description?: string;
   };
+
+  type Activity = {
+    taskId: string;
+    taskTitle: string;
+    amount: number;
+    completionTime: number; // in seconds
+    completedAt: Date;
+  };
+
   const [recentPayouts, setRecentPayouts] = useState<Payout[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [username, setUsername] = useState("");
   const [withdrawnAmount, setWithdrawnAmount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [taskProgress, setTaskProgress] = useState(0);
   const [taskTimer, setTaskTimer] = useState<NodeJS.Timeout | null>(null);
+  const [taskStartTime, setTaskStartTime] = useState<number | null>(null);
+  const currentStepRef = useRef(0);
   const router = useRouter();
 
   // Calculate completion percentage (same as profile page)
@@ -63,7 +76,14 @@ export default function Home() {
       category: "Survey",
       description: "Share basic demographic information for research purposes",
       steps: 5,
-      duration: 60
+      duration: 60,
+      activities: [
+        "Collecting demographic data",
+        "Analyzing age distribution",
+        "Processing location information",
+        "Compiling education levels",
+        "Generating summary report"
+      ]
     },
     {
       id: 'product_feedback',
@@ -73,7 +93,17 @@ export default function Home() {
       category: "User Testing",
       description: "Provide feedback on a new product interface",
       steps: 8,
-      duration: 120
+      duration: 120,
+      activities: [
+        "Testing product navigation",
+        "Evaluating user interface",
+        "Providing feature feedback",
+        "Rating user experience",
+        "Suggesting improvements",
+        "Comparing with competitors",
+        "Completing satisfaction survey",
+        "Submitting final review"
+      ]
     },
     {
       id: 'data_annotation',
@@ -83,7 +113,21 @@ export default function Home() {
       category: "Data Labeling",
       description: "Label objects in images for machine learning training",
       steps: 12,
-      duration: 180
+      duration: 180,
+      activities: [
+        "Loading image dataset",
+        "Identifying objects in images",
+        "Drawing bounding boxes",
+        "Labeling object categories",
+        "Verifying annotation accuracy",
+        "Correcting mislabeled items",
+        "Exporting annotation data",
+        "Quality checking results",
+        "Generating metadata",
+        "Compressing final dataset",
+        "Creating summary report",
+        "Uploading completed task"
+      ]
     },
     {
       id: 'audio_transcription',
@@ -93,7 +137,24 @@ export default function Home() {
       category: "Transcription",
       description: "Transcribe short audio clips to text",
       steps: 15,
-      duration: 240
+      duration: 240,
+      activities: [
+        "Loading audio files",
+        "Listening to audio clips",
+        "Transcribing speech to text",
+        "Time-stamping transcriptions",
+        "Identifying speakers",
+        "Noting background sounds",
+        "Correcting transcription errors",
+        "Formatting text output",
+        "Adding punctuation",
+        "Proofreading transcript",
+        "Quality assurance check",
+        "Exporting final transcript",
+        "Generating word count",
+        "Creating accuracy report",
+        "Submitting completed work"
+      ]
     },
     {
       id: 'sentiment_analysis',
@@ -103,7 +164,19 @@ export default function Home() {
       category: "Text Analysis",
       description: "Classify text excerpts by emotional sentiment",
       steps: 10,
-      duration: 90
+      duration: 90,
+      activities: [
+        "Loading text samples",
+        "Reading and understanding content",
+        "Identifying emotional cues",
+        "Classifying sentiment polarity",
+        "Rating sentiment intensity",
+        "Noting contextual factors",
+        "Cross-verifying classifications",
+        "Compiling results",
+        "Generating sentiment report",
+        "Exporting final analysis"
+      ]
     }
   ];
 
@@ -123,6 +196,7 @@ export default function Home() {
           setPendingPayments(data.balance || 0);
           setRecentPayouts(data.recentPayouts || []);
           setWithdrawnAmount(data.withdrawnAmount || 0);
+          setRecentActivities(data.recentActivities || []);
         }
       } else {
         setIsLoggedIn(false);
@@ -166,6 +240,8 @@ export default function Home() {
     setTaskTimer(timer);
   };
 
+
+
   const cancelTask = () => {
     if (taskTimer) {
       clearInterval(taskTimer);
@@ -173,6 +249,8 @@ export default function Home() {
     }
     setActiveTask(null);
     setTaskProgress(0);
+    setTaskStartTime(null);
+    currentStepRef.current = 0;
   };
 
   const completeTask = async (taskId: string) => {
@@ -565,20 +643,30 @@ export default function Home() {
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                     <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Activity</h2>
                     <div className="space-y-3">
-                      {recentPayouts.length > 0 ? (
-                        recentPayouts.slice(0, 3).map((payout, index) => (
+                      {recentActivities.length > 0 ? (
+                        recentActivities.slice(0, 5).map((activity, index) => (
                           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div>
-                              <p className="font-medium text-gray-900">${payout.amount.toFixed(2)}</p>
-                              <p className="text-sm text-gray-500">{new Date(payout.date).toLocaleDateString()}</p>
+                              <p className="font-medium text-gray-900">{activity.taskTitle}</p>
+                              <div className="flex items-center space-x-4 mt-1">
+                                <span className="text-xs text-gray-500 flex items-center">
+                                  <FaClock className="mr-1" /> {formatTime(activity.completionTime)}
+                                </span>
+                                <span className="text-xs text-emerald-600 flex items-center">
+                                  <FaDollarSign className="mr-1" /> {activity.amount.toFixed(2)}
+                                </span>
+                              </div>
                             </div>
-                            <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full">Completed</span>
+                            <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full flex items-center">
+                              <FaCheckCircle className="mr-1" /> Completed
+                            </span>
                           </div>
                         ))
                       ) : (
                         <div className="text-center py-8">
-                          <FaDollarSign className="text-4xl text-gray-300 mx-auto mb-3" />
+                          <FaTasks className="text-4xl text-gray-300 mx-auto mb-3" />
                           <p className="text-gray-500">No recent activity</p>
+                          <p className="text-sm text-gray-400 mt-1">Complete tasks to see your activity here</p>
                         </div>
                       )}
                     </div>
@@ -599,13 +687,34 @@ export default function Home() {
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
                       <h2 className="text-xl font-bold mb-4 text-center">Task in Progress</h2>
-                      <div className="w-full bg-gray-100 rounded-full h-3 mb-4">
-                        <div
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-100"
-                          style={{ width: `${taskProgress}%` }}
-                        />
+
+                      <div className="mb-4">
+                        <div className="w-full bg-gray-100 rounded-full h-3 mb-2">
+                          <div
+                            className="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-100"
+                            style={{ width: `${taskProgress}%` }}
+                          />
+                        </div>
+                        <p className="text-center text-gray-600">Completing... {Math.round(taskProgress)}%</p>
                       </div>
-                      <p className="text-center mb-6 text-gray-600">Completing... {Math.round(taskProgress)}%</p>
+
+                      <div className="mb-4 max-h-40 overflow-y-auto">
+                        <h3 className="font-medium mb-2">Current Activity:</h3>
+                        {availableTasks.find(t => t.id === activeTask)?.activities.map((activity, index) => (
+                          <div
+                            key={index}
+                            className={`text-sm p-2 rounded mb-1 ${index < Math.floor((taskProgress / 100) * (availableTasks.find(t => t.id === activeTask)?.activities.length || 1))
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-gray-50 text-gray-500'}`}
+                          >
+                            {index < Math.floor((taskProgress / 100) * (availableTasks.find(t => t.id === activeTask)?.activities.length || 1))
+                              ? <FaCheckCircle className="inline mr-2 text-emerald-500" />
+                              : <span className="inline-block w-5 mr-2"></span>}
+                            {activity}
+                          </div>
+                        ))}
+                      </div>
+
                       <button
                         onClick={cancelTask}
                         className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-medium transition-colors"
@@ -623,6 +732,12 @@ export default function Home() {
                         <div>
                           <h3 className="font-semibold text-lg text-gray-900 mb-2">{task.title}</h3>
                           <p className="text-gray-600 text-sm">{task.description}</p>
+                          <div className="mt-2 flex items-center text-xs text-gray-500">
+                            <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full mr-2">
+                              ID: {task.id}
+                            </span>
+                            <span>{task.steps} steps</span>
+                          </div>
                         </div>
                         <span className="bg-indigo-100 text-indigo-800 text-xs px-3 py-1 rounded-full">
                           {task.category}
@@ -634,7 +749,6 @@ export default function Home() {
                           <span className="text-2xl font-bold text-emerald-600">${task.reward.toFixed(2)}</span>
                           <span className="text-sm text-gray-500">{task.timeEstimate}</span>
                         </div>
-                        <span className="text-xs text-gray-400">{task.steps} steps</span>
                       </div>
 
                       <button
@@ -680,34 +794,36 @@ export default function Home() {
                 </div>
 
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Payout History</h2>
-                  {recentPayouts.length > 0 ? (
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Activities</h2>
+                  {recentActivities.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Taken</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {recentPayouts.map((payout, index) => (
+                          {recentActivities.slice(0, 10).map((activity, index) => (
                             <tr key={index} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {new Date(payout.date).toLocaleDateString()}
+                                {activity.taskTitle}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {activity.taskId}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {payout.description || "Task Completion"}
+                                {formatTime(activity.completionTime)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
-                                ${payout.amount.toFixed(2)}
+                                ${activity.amount.toFixed(2)}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800">
-                                  Completed
-                                </span>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(activity.completedAt).toLocaleDateString()}
                               </td>
                             </tr>
                           ))}
@@ -716,9 +832,9 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <FaDollarSign className="text-4xl text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">No payout history yet</p>
-                      <p className="text-sm text-gray-400 mt-1">Complete tasks to see your earnings here</p>
+                      <FaTasks className="text-4xl text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No activity history yet</p>
+                      <p className="text-sm text-gray-400 mt-1">Complete tasks to see your activities here</p>
                     </div>
                   )}
                 </div>
