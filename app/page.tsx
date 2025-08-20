@@ -287,6 +287,14 @@ export default function Home() {
 
   const totalEarnings = balance + withdrawnAmount;
 
+  // Helper to format seconds as "Xm Ys"
+  function formatTime(seconds: number) {
+    if (isNaN(seconds)) return "0s";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
