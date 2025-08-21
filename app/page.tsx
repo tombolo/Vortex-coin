@@ -5,6 +5,7 @@ import { auth, db } from "@/lib/firebaseConfig";
 import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { FaUserCircle, FaBars, FaTimes, FaHome, FaTasks, FaDollarSign, FaQuestionCircle, FaChartLine, FaBell, FaRocket, FaBrain, FaUsers, FaLightbulb, FaChild, FaClock, FaCheckCircle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import { availableTasks, Task } from "../data/data"; // Import from external file
 
 export default function Home() {
   const [balance, setBalance] = useState(0);
@@ -15,6 +16,7 @@ export default function Home() {
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [pendingPayments, setPendingPayments] = useState(0);
+  const [tasksAvailable, setTasksAvailable] = useState<Task[]>([]);
 
   type Payout = {
     date: string | number | Date;
@@ -42,6 +44,20 @@ export default function Home() {
   const currentStepRef = useRef(0);
   const router = useRouter();
 
+  // Function to determine which tasks are available
+  const getAvailableTasks = () => {
+    // 30% chance that no tasks are available
+    if (Math.random() < 0.3) {
+      return [];
+    }
+
+    // Filter tasks - some might not be available
+    return availableTasks.filter(task => {
+      // 70% chance each task is available
+      return Math.random() < 0.7;
+    });
+  };
+
   // Calculate completion percentage (same as profile page)
   const calculateCompletion = () => {
     if (!userData) return 0;
@@ -66,121 +82,10 @@ export default function Home() {
     { id: 'project5', name: "Oval Kettledrum", category: "Sentiment Analysis", progress: 71 }
   ];
 
-  // Expanded available tasks with more variety
-  const availableTasks = [
-    {
-      id: 'survey_demographics',
-      title: "Demographics Survey",
-      reward: 2.50,
-      timeEstimate: "10-15 min",
-      category: "Survey",
-      description: "Share basic demographic information for research purposes",
-      steps: 5,
-      duration: 60,
-      activities: [
-        "Collecting demographic data",
-        "Analyzing age distribution",
-        "Processing location information",
-        "Compiling education levels",
-        "Generating summary report"
-      ]
-    },
-    {
-      id: 'product_feedback',
-      title: "Product Feedback Study",
-      reward: 5.00,
-      timeEstimate: "20-25 min",
-      category: "User Testing",
-      description: "Provide feedback on a new product interface",
-      steps: 8,
-      duration: 120,
-      activities: [
-        "Testing product navigation",
-        "Evaluating user interface",
-        "Providing feature feedback",
-        "Rating user experience",
-        "Suggesting improvements",
-        "Comparing with competitors",
-        "Completing satisfaction survey",
-        "Submitting final review"
-      ]
-    },
-    {
-      id: 'data_annotation',
-      title: "Image Annotation Task",
-      reward: 8.00,
-      timeEstimate: "30-35 min",
-      category: "Data Labeling",
-      description: "Label objects in images for machine learning training",
-      steps: 12,
-      duration: 180,
-      activities: [
-        "Loading image dataset",
-        "Identifying objects in images",
-        "Drawing bounding boxes",
-        "Labeling object categories",
-        "Verifying annotation accuracy",
-        "Correcting mislabeled items",
-        "Exporting annotation data",
-        "Quality checking results",
-        "Generating metadata",
-        "Compressing final dataset",
-        "Creating summary report",
-        "Uploading completed task"
-      ]
-    },
-    {
-      id: 'audio_transcription',
-      title: "Audio Transcription",
-      reward: 12.00,
-      timeEstimate: "40-45 min",
-      category: "Transcription",
-      description: "Transcribe short audio clips to text",
-      steps: 15,
-      duration: 240,
-      activities: [
-        "Loading audio files",
-        "Listening to audio clips",
-        "Transcribing speech to text",
-        "Time-stamping transcriptions",
-        "Identifying speakers",
-        "Noting background sounds",
-        "Correcting transcription errors",
-        "Formatting text output",
-        "Adding punctuation",
-        "Proofreading transcript",
-        "Quality assurance check",
-        "Exporting final transcript",
-        "Generating word count",
-        "Creating accuracy report",
-        "Submitting completed work"
-      ]
-    },
-    {
-      id: 'sentiment_analysis',
-      title: "Sentiment Analysis",
-      reward: 6.50,
-      timeEstimate: "15-20 min",
-      category: "Text Analysis",
-      description: "Classify text excerpts by emotional sentiment",
-      steps: 10,
-      duration: 90,
-      activities: [
-        "Loading text samples",
-        "Reading and understanding content",
-        "Identifying emotional cues",
-        "Classifying sentiment polarity",
-        "Rating sentiment intensity",
-        "Noting contextual factors",
-        "Cross-verifying classifications",
-        "Compiling results",
-        "Generating sentiment report",
-        "Exporting final analysis"
-      ]
-    }
-  ];
-
   useEffect(() => {
+    // Set initial available tasks
+    setTasksAvailable(getAvailableTasks());
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsLoggedIn(true);
@@ -208,6 +113,13 @@ export default function Home() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Refresh tasks when switching to tasks tab
+  useEffect(() => {
+    if (activeTab === 'tasks') {
+      setTasksAvailable(getAvailableTasks());
+    }
+  }, [activeTab]);
 
   const handleLogout = async () => {
     try {
@@ -239,8 +151,6 @@ export default function Home() {
 
     setTaskTimer(timer);
   };
-
-
 
   const cancelTask = () => {
     if (taskTimer) {
@@ -549,7 +459,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-xl font-semibold text-gray-900">Active Projects</h2>
+                      <h2 className="text-xl font-semibold text-gray-909">Active Projects</h2>
                       <span className="text-sm text-indigo-600 font-medium">{activeProjects.length} projects</span>
                     </div>
                     <div className="space-y-4">
@@ -733,54 +643,68 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {availableTasks.map(task => (
-                    <div key={task.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="font-semibold text-lg text-gray-900 mb-2">{task.title}</h3>
-                          <p className="text-gray-600 text-sm">{task.description}</p>
-                          <div className="mt-2 flex items-center text-xs text-gray-500">
-                            <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full mr-2">
-                              ID: {task.id}
-                            </span>
-                            <span>{task.steps} steps</span>
+                {tasksAvailable.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-100">
+                    <FaTasks className="text-5xl text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">No Tasks Available</h3>
+                    <p className="text-gray-500 mb-6">Check back later for new tasks to complete.</p>
+                    <button
+                      onClick={() => setTasksAvailable(getAvailableTasks())}
+                      className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-6 py-2 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      Refresh Tasks
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {tasksAvailable.map(task => (
+                      <div key={task.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg text-gray-900 mb-2">{task.title}</h3>
+                            <p className="text-gray-600 text-sm">{task.description}</p>
+                            <div className="mt-2 flex items-center text-xs text-gray-500">
+                              <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full mr-2">
+                                ID: {task.id}
+                              </span>
+                              <span>{task.steps} steps</span>
+                            </div>
+                          </div>
+                          <span className="bg-indigo-100 text-indigo-800 text-xs px-3 py-1 rounded-full">
+                            {task.category}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-4">
+                            <span className="text-2xl font-bold text-emerald-600">${task.reward.toFixed(2)}</span>
+                            <span className="text-sm text-gray-500">{task.timeEstimate}</span>
                           </div>
                         </div>
-                        <span className="bg-indigo-100 text-indigo-800 text-xs px-3 py-1 rounded-full">
-                          {task.category}
-                        </span>
-                      </div>
 
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-4">
-                          <span className="text-2xl font-bold text-emerald-600">${task.reward.toFixed(2)}</span>
-                          <span className="text-sm text-gray-500">{task.timeEstimate}</span>
-                        </div>
+                        <button
+                          onClick={() => startTask(task.id, task.duration)}
+                          disabled={completedTasks.includes(task.id) || activeTask !== null}
+                          className={`w-full py-3 rounded-xl font-medium transition-all duration-200 ${completedTasks.includes(task.id)
+                            ? 'bg-emerald-100 text-emerald-800 cursor-not-allowed'
+                            : activeTask !== null
+                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-sm hover:shadow-md'
+                            }`}
+                        >
+                          {completedTasks.includes(task.id) ? 'Completed ✓' : 'Start Task'}
+                        </button>
                       </div>
-
-                      <button
-                        onClick={() => startTask(task.id, task.duration)}
-                        disabled={completedTasks.includes(task.id) || activeTask !== null}
-                        className={`w-full py-3 rounded-xl font-medium transition-all duration-200 ${completedTasks.includes(task.id)
-                          ? 'bg-emerald-100 text-emerald-800 cursor-not-allowed'
-                          : activeTask !== null
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-sm hover:shadow-md'
-                          }`}
-                      >
-                        {completedTasks.includes(task.id) ? 'Completed ✓' : 'Start Task'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === 'balance' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">Earnings & Balance</h1>
+                  <h1 className="text-2xl font-bold text-gray-909 mb-2">Earnings & Balance</h1>
                   <p className="text-gray-600">Track your earnings and payment history</p>
                 </div>
 
@@ -852,7 +776,7 @@ export default function Home() {
             {activeTab === 'support' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">Support Center</h1>
+                  <h1 className="text-2xl font-bold text-gray-909 mb-2">Support Center</h1>
                   <p className="text-gray-600">Get help and find resources</p>
                 </div>
 
@@ -900,7 +824,7 @@ export default function Home() {
                           <FaTasks className="text-indigo-600" />
                         </div>
                         <div className="text-left">
-                          <h3 className="font-medium text-gray-900">Tasker Guidelines</h3>
+                          <h3 className="font-medium text-gray-909">Tasker Guidelines</h3>
                           <p className="text-sm text-gray-600">Best practices and rules</p>
                         </div>
                       </button>

@@ -7,7 +7,7 @@ import { getStorage } from "firebase/storage";
 const storage = getStorage();
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { FaUserCircle, FaArrowLeft, FaCoins, FaEnvelope, FaSignOutAlt, FaIdCard, FaCreditCard, FaFileAlt, FaCheckCircle, FaClock, FaUpload, FaPercentage, FaTimes } from "react-icons/fa";
+import { FaUserCircle, FaArrowLeft, FaCoins, FaEnvelope, FaSignOutAlt, FaIdCard, FaCreditCard, FaFileAlt, FaCheckCircle, FaClock, FaUpload, FaPercentage, FaTimes, FaGlobe } from "react-icons/fa";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 
 const Profile = () => {
@@ -18,10 +18,18 @@ const Profile = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileType, setFileType] = useState<'id' | 'cv' | ''>('');
     const [showBankForm, setShowBankForm] = useState(false);
+    const [bankType, setBankType] = useState<'wise' | 'traditional' | ''>('');
     const [bankDetails, setBankDetails] = useState({
         accountNumber: '',
         routingNumber: '',
-        accountName: ''
+        accountName: '',
+        // Wise-specific fields
+        currency: 'USD',
+        country: '',
+        accountType: 'checking',
+        iban: '',
+        swiftBic: '',
+        wiseEmail: ''
     });
 
     useEffect(() => {
@@ -76,11 +84,28 @@ const Profile = () => {
     };
 
     const handleBankConnect = async () => {
-        if (!user || !bankDetails.accountNumber || !bankDetails.routingNumber || !bankDetails.accountName) return;
+        if (!user || !bankDetails.accountName) return;
+
+        // Validate based on bank type
+        if (bankType === 'wise') {
+            if (!bankDetails.currency || !bankDetails.country || !bankDetails.wiseEmail) {
+                alert("Please fill all required Wise account fields");
+                return;
+            }
+        } else if (bankType === 'traditional') {
+            if (!bankDetails.accountNumber || !bankDetails.routingNumber) {
+                alert("Please fill all required bank account fields");
+                return;
+            }
+        } else {
+            alert("Please select a bank type");
+            return;
+        }
 
         try {
             await updateDoc(doc(db, "users", user.uid), {
                 bankConnected: true,
+                bankType: bankType,
                 bankDetails: bankDetails,
                 bankConnectDate: new Date()
             });
@@ -91,7 +116,18 @@ const Profile = () => {
                 setUser({ uid: user.uid, ...userDoc.data() });
             }
 
-            setBankDetails({ accountNumber: '', routingNumber: '', accountName: '' });
+            setBankDetails({
+                accountNumber: '',
+                routingNumber: '',
+                accountName: '',
+                currency: 'USD',
+                country: '',
+                accountType: 'checking',
+                iban: '',
+                swiftBic: '',
+                wiseEmail: ''
+            });
+            setBankType('');
             setShowBankForm(false);
         } catch (error) {
             console.error("Bank connection failed:", error);
@@ -268,7 +304,9 @@ const Profile = () => {
                                 <div>
                                     <p className="font-medium text-gray-900">Bank Account</p>
                                     <p className="text-sm text-gray-500">
-                                        {user?.bankConnected ? 'Connected' : 'Not Connected'}
+                                        {user?.bankConnected ?
+                                            (user?.bankType === 'wise' ? 'Wise Account Connected' : 'Bank Account Connected')
+                                            : 'Not Connected'}
                                     </p>
                                 </div>
                             </div>
@@ -349,63 +387,206 @@ const Profile = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold text-gray-900">Connect Bank Account</h3>
                                 <button
-                                    onClick={() => setShowBankForm(false)}
+                                    onClick={() => {
+                                        setShowBankForm(false);
+                                        setBankType('');
+                                        setBankDetails({
+                                            accountNumber: '',
+                                            routingNumber: '',
+                                            accountName: '',
+                                            currency: 'USD',
+                                            country: '',
+                                            accountType: 'checking',
+                                            iban: '',
+                                            swiftBic: '',
+                                            wiseEmail: ''
+                                        });
+                                    }}
                                     className="text-gray-400 hover:text-gray-600 transition-colors"
                                 >
                                     <FaTimes className="text-lg" />
                                 </button>
                             </div>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Account Holder Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="John Doe"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                        value={bankDetails.accountName}
-                                        onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
-                                    />
+                            {!bankType ? (
+                                <div className="space-y-4">
+                                    <h4 className="font-medium text-gray-900">Select Account Type</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button
+                                            onClick={() => setBankType('wise')}
+                                            className="p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 text-center"
+                                        >
+                                            <FaGlobe className="text-2xl text-indigo-600 mx-auto mb-2" />
+                                            <h5 className="font-medium">Wise Account</h5>
+                                            <p className="text-sm text-gray-500 mt-1">International payments</p>
+                                        </button>
+                                        <button
+                                            onClick={() => setBankType('traditional')}
+                                            className="p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 text-center"
+                                        >
+                                            <FaCreditCard className="text-2xl text-indigo-600 mx-auto mb-2" />
+                                            <h5 className="font-medium">Traditional Bank</h5>
+                                            <p className="text-sm text-gray-500 mt-1">Local bank account</p>
+                                        </button>
+                                    </div>
                                 </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-medium text-gray-900">
+                                            {bankType === 'wise' ? 'Wise Account Details' : 'Bank Account Details'}
+                                        </h4>
+                                        <button
+                                            onClick={() => setBankType('')}
+                                            className="text-sm text-indigo-600 hover:text-indigo-700"
+                                        >
+                                            Change Type
+                                        </button>
+                                    </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
-                                    <input
-                                        type="text"
-                                        placeholder="1234567890"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                        value={bankDetails.accountNumber}
-                                        onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                                    />
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Account Holder Name *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="John Doe"
+                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                            value={bankDetails.accountName}
+                                            onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+
+                                    {bankType === 'wise' ? (
+                                        <>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Wise Email Address *</label>
+                                                <input
+                                                    type="email"
+                                                    placeholder="your.email@example.com"
+                                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                                    value={bankDetails.wiseEmail}
+                                                    onChange={(e) => setBankDetails({ ...bankDetails, wiseEmail: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Currency *</label>
+                                                    <select
+                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                                        value={bankDetails.currency}
+                                                        onChange={(e) => setBankDetails({ ...bankDetails, currency: e.target.value })}
+                                                        required
+                                                    >
+                                                        <option value="USD">USD</option>
+                                                        <option value="EUR">EUR</option>
+                                                        <option value="GBP">GBP</option>
+                                                        <option value="CAD">CAD</option>
+                                                        <option value="AUD">AUD</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Country *</label>
+                                                    <select
+                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                                        value={bankDetails.country}
+                                                        onChange={(e) => setBankDetails({ ...bankDetails, country: e.target.value })}
+                                                        required
+                                                    >
+                                                        <option value="">Select Country</option>
+                                                        <option value="US">United States</option>
+                                                        <option value="GB">United Kingdom</option>
+                                                        <option value="CA">Canada</option>
+                                                        <option value="AU">Australia</option>
+                                                        <option value="DE">Germany</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="GB29 NWBK 6016 1331 9268 19"
+                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                                        value={bankDetails.iban}
+                                                        onChange={(e) => setBankDetails({ ...bankDetails, iban: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">SWIFT/BIC</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="ABCDGB2A"
+                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                                        value={bankDetails.swiftBic}
+                                                        onChange={(e) => setBankDetails({ ...bankDetails, swiftBic: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Account Number *</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="1234567890"
+                                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                                    value={bankDetails.accountNumber}
+                                                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Routing Number *</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="021000021"
+                                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                                    value={bankDetails.routingNumber}
+                                                    onChange={(e) => setBankDetails({ ...bankDetails, routingNumber: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="flex space-x-3 mt-6">
+                                        <button
+                                            onClick={() => {
+                                                setShowBankForm(false);
+                                                setBankType('');
+                                                setBankDetails({
+                                                    accountNumber: '',
+                                                    routingNumber: '',
+                                                    accountName: '',
+                                                    currency: 'USD',
+                                                    country: '',
+                                                    accountType: 'checking',
+                                                    iban: '',
+                                                    swiftBic: '',
+                                                    wiseEmail: ''
+                                                });
+                                            }}
+                                            className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleBankConnect}
+                                            disabled={
+                                                !bankDetails.accountName ||
+                                                (bankType === 'wise' ? (!bankDetails.wiseEmail || !bankDetails.currency || !bankDetails.country) :
+                                                    (!bankDetails.accountNumber || !bankDetails.routingNumber))
+                                            }
+                                            className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Connect {bankType === 'wise' ? 'Wise Account' : 'Bank Account'}
+                                        </button>
+                                    </div>
                                 </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Routing Number</label>
-                                    <input
-                                        type="text"
-                                        placeholder="021000021"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                        value={bankDetails.routingNumber}
-                                        onChange={(e) => setBankDetails({ ...bankDetails, routingNumber: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex space-x-3 mt-6">
-                                <button
-                                    onClick={() => setShowBankForm(false)}
-                                    className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleBankConnect}
-                                    disabled={!bankDetails.accountNumber || !bankDetails.routingNumber || !bankDetails.accountName}
-                                    className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Connect Bank
-                                </button>
-                            </div>
+                            )}
                         </div>
                     )}
 
