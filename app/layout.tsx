@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TaskForge",
   description: "A modern AI-powered task management app",
+  icons: {
+    icon: "/favicon.ico", // 👈 add this line
+  },
 };
 
 export default function RootLayout({

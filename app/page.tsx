@@ -6,6 +6,7 @@ import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { FaUserCircle, FaBars, FaTimes, FaHome, FaTasks, FaDollarSign, FaQuestionCircle, FaChartLine, FaBell, FaRocket, FaBrain, FaUsers, FaLightbulb, FaChild, FaClock, FaCheckCircle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { availableTasks, Task } from "../data/data"; // Import from external file
+import Image from "next/image";
 
 export default function Home() {
   const [balance, setBalance] = useState(0);
@@ -218,10 +219,7 @@ export default function Home() {
       {/* Modern Header */}
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-200/50 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex items-center space-x-2">
-          <FaRocket className="text-xl text-indigo-600" />
-          <span className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            TaskForge
-          </span>
+          <Image src="/FORGE.png" alt="TaskForge Logo" width={32} height={32} />
         </div>
 
         <div className="flex items-center space-x-3">
