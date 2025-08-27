@@ -7,7 +7,7 @@ import { getStorage } from "firebase/storage";
 const storage = getStorage();
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { FaUserCircle, FaArrowLeft, FaCoins, FaEnvelope, FaSignOutAlt, FaIdCard, FaCreditCard, FaFileAlt, FaCheckCircle, FaClock, FaUpload, FaPercentage, FaTimes, FaGlobe } from "react-icons/fa";
+import { FaUserCircle, FaArrowLeft, FaCoins, FaEnvelope, FaSignOutAlt, FaIdCard, FaCreditCard, FaFileAlt, FaCheckCircle, FaClock, FaUpload, FaPercentage, FaTimes, FaPaypal } from "react-icons/fa";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 
 const Profile = () => {
@@ -17,19 +17,12 @@ const Profile = () => {
     const [uploading, setUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileType, setFileType] = useState<'id' | 'cv' | ''>('');
-    const [showBankForm, setShowBankForm] = useState(false);
-    const [bankType, setBankType] = useState<'wise' | 'traditional' | ''>('');
-    const [bankDetails, setBankDetails] = useState({
-        accountNumber: '',
-        routingNumber: '',
-        accountName: '',
-        // Wise-specific fields
-        currency: 'USD',
-        country: '',
-        accountType: 'checking',
-        iban: '',
-        swiftBic: '',
-        wiseEmail: ''
+    const [showPaypalForm, setShowPaypalForm] = useState(false);
+    const [paypalDetails, setPaypalDetails] = useState({
+        paypalEmail: '',
+        confirmPaypalEmail: '',
+        firstName: '',
+        lastName: ''
     });
 
     useEffect(() => {
@@ -83,31 +76,37 @@ const Profile = () => {
         }
     };
 
-    const handleBankConnect = async () => {
-        if (!user || !bankDetails.accountName) return;
+    const handlePaypalConnect = async () => {
+        if (!user) return;
 
-        // Validate based on bank type
-        if (bankType === 'wise') {
-            if (!bankDetails.currency || !bankDetails.country || !bankDetails.wiseEmail) {
-                alert("Please fill all required Wise account fields");
-                return;
-            }
-        } else if (bankType === 'traditional') {
-            if (!bankDetails.accountNumber || !bankDetails.routingNumber) {
-                alert("Please fill all required bank account fields");
-                return;
-            }
-        } else {
-            alert("Please select a bank type");
+        // Validate PayPal details
+        if (!paypalDetails.paypalEmail || !paypalDetails.confirmPaypalEmail ||
+            !paypalDetails.firstName || !paypalDetails.lastName) {
+            alert("Please fill all required PayPal account fields");
+            return;
+        }
+
+        if (paypalDetails.paypalEmail !== paypalDetails.confirmPaypalEmail) {
+            alert("PayPal emails do not match");
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(paypalDetails.paypalEmail)) {
+            alert("Please enter a valid PayPal email address");
             return;
         }
 
         try {
             await updateDoc(doc(db, "users", user.uid), {
-                bankConnected: true,
-                bankType: bankType,
-                bankDetails: bankDetails,
-                bankConnectDate: new Date()
+                paypalConnected: true,
+                paypalDetails: {
+                    email: paypalDetails.paypalEmail,
+                    firstName: paypalDetails.firstName,
+                    lastName: paypalDetails.lastName
+                },
+                paypalConnectDate: new Date()
             });
 
             // Refresh user data
@@ -116,31 +115,25 @@ const Profile = () => {
                 setUser({ uid: user.uid, ...userDoc.data() });
             }
 
-            setBankDetails({
-                accountNumber: '',
-                routingNumber: '',
-                accountName: '',
-                currency: 'USD',
-                country: '',
-                accountType: 'checking',
-                iban: '',
-                swiftBic: '',
-                wiseEmail: ''
+            setPaypalDetails({
+                paypalEmail: '',
+                confirmPaypalEmail: '',
+                firstName: '',
+                lastName: ''
             });
-            setBankType('');
-            setShowBankForm(false);
+            setShowPaypalForm(false);
         } catch (error) {
-            console.error("Bank connection failed:", error);
+            console.error("PayPal connection failed:", error);
         }
     };
 
     const calculateCompletion = () => {
         let completed = 0;
-        const total = 4; // ID, CV, Bank, Profile info
+        const total = 4; // ID, CV, PayPal, Profile info
 
         if (user?.idStatus === 'verified') completed++;
         if (user?.cvStatus === 'verified') completed++;
-        if (user?.bankConnected) completed++;
+        if (user?.paypalConnected) completed++;
         if (user?.name && user?.email) completed++;
 
         return Math.round((completed / total) * 100);
@@ -294,27 +287,25 @@ const Profile = () => {
                             )}
                         </div>
 
-                        {/* Bank Connection */}
+                        {/* PayPal Connection */}
                         <div className="flex items-center justify-between py-3">
                             <div className="flex items-center space-x-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user?.bankConnected ? 'bg-emerald-100' : 'bg-gray-100'
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user?.paypalConnected ? 'bg-emerald-100' : 'bg-gray-100'
                                     }`}>
-                                    <FaCreditCard className={user?.bankConnected ? 'text-emerald-600' : 'text-gray-400'} />
+                                    <FaPaypal className={user?.paypalConnected ? 'text-emerald-600' : 'text-gray-400'} />
                                 </div>
                                 <div>
-                                    <p className="font-medium text-gray-900">Bank Account</p>
+                                    <p className="font-medium text-gray-900">PayPal Account</p>
                                     <p className="text-sm text-gray-500">
-                                        {user?.bankConnected ?
-                                            (user?.bankType === 'wise' ? 'Wise Account Connected' : 'Bank Account Connected')
-                                            : 'Not Connected'}
+                                        {user?.paypalConnected ? 'USA PayPal Account Connected' : 'Not Connected'}
                                     </p>
                                 </div>
                             </div>
-                            {user?.bankConnected ? (
+                            {user?.paypalConnected ? (
                                 <FaCheckCircle className="text-emerald-500 text-xl" />
                             ) : (
                                 <button
-                                    onClick={() => setShowBankForm(true)}
+                                    onClick={() => setShowPaypalForm(true)}
                                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors"
                                 >
                                     Connect
@@ -381,25 +372,19 @@ const Profile = () => {
                         </div>
                     )}
 
-                    {/* Bank Connection Form */}
-                    {showBankForm && (
+                    {/* PayPal Connection Form */}
+                    {showPaypalForm && (
                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Connect Bank Account</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">Connect USA PayPal Account</h3>
                                 <button
                                     onClick={() => {
-                                        setShowBankForm(false);
-                                        setBankType('');
-                                        setBankDetails({
-                                            accountNumber: '',
-                                            routingNumber: '',
-                                            accountName: '',
-                                            currency: 'USD',
-                                            country: '',
-                                            accountType: 'checking',
-                                            iban: '',
-                                            swiftBic: '',
-                                            wiseEmail: ''
+                                        setShowPaypalForm(false);
+                                        setPaypalDetails({
+                                            paypalEmail: '',
+                                            confirmPaypalEmail: '',
+                                            firstName: '',
+                                            lastName: ''
                                         });
                                     }}
                                     className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -408,185 +393,93 @@ const Profile = () => {
                                 </button>
                             </div>
 
-                            {!bankType ? (
-                                <div className="space-y-4">
-                                    <h4 className="font-medium text-gray-900">Select Account Type</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <button
-                                            onClick={() => setBankType('wise')}
-                                            className="p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 text-center"
-                                        >
-                                            <FaGlobe className="text-2xl text-indigo-600 mx-auto mb-2" />
-                                            <h5 className="font-medium">Wise Account</h5>
-                                            <p className="text-sm text-gray-500 mt-1">International payments</p>
-                                        </button>
-                                        <button
-                                            onClick={() => setBankType('traditional')}
-                                            className="p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 text-center"
-                                        >
-                                            <FaCreditCard className="text-2xl text-indigo-600 mx-auto mb-2" />
-                                            <h5 className="font-medium">Traditional Bank</h5>
-                                            <p className="text-sm text-gray-500 mt-1">Local bank account</p>
-                                        </button>
-                                    </div>
+                            <div className="space-y-4">
+                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                    <p className="text-sm text-blue-700">
+                                        <strong>Note:</strong> Only USA PayPal accounts are accepted for payments.
+                                        Please ensure your PayPal account is based in the United States.
+                                    </p>
                                 </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-medium text-gray-900">
-                                            {bankType === 'wise' ? 'Wise Account Details' : 'Bank Account Details'}
-                                        </h4>
-                                        <button
-                                            onClick={() => setBankType('')}
-                                            className="text-sm text-indigo-600 hover:text-indigo-700"
-                                        >
-                                            Change Type
-                                        </button>
-                                    </div>
 
+                                <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Account Holder Name *</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
                                         <input
                                             type="text"
-                                            placeholder="John Doe"
+                                            placeholder="John"
                                             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                            value={bankDetails.accountName}
-                                            onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                                            value={paypalDetails.firstName}
+                                            onChange={(e) => setPaypalDetails({ ...paypalDetails, firstName: e.target.value })}
                                             required
                                         />
                                     </div>
-
-                                    {bankType === 'wise' ? (
-                                        <>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Wise Email Address *</label>
-                                                <input
-                                                    type="email"
-                                                    placeholder="your.email@example.com"
-                                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                                    value={bankDetails.wiseEmail}
-                                                    onChange={(e) => setBankDetails({ ...bankDetails, wiseEmail: e.target.value })}
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Currency *</label>
-                                                    <select
-                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                                        value={bankDetails.currency}
-                                                        onChange={(e) => setBankDetails({ ...bankDetails, currency: e.target.value })}
-                                                        required
-                                                    >
-                                                        <option value="USD">USD</option>
-                                                        <option value="EUR">EUR</option>
-                                                        <option value="GBP">GBP</option>
-                                                        <option value="CAD">CAD</option>
-                                                        <option value="AUD">AUD</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Country *</label>
-                                                    <select
-                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                                        value={bankDetails.country}
-                                                        onChange={(e) => setBankDetails({ ...bankDetails, country: e.target.value })}
-                                                        required
-                                                    >
-                                                        <option value="">Select Country</option>
-                                                        <option value="US">United States</option>
-                                                        <option value="GB">United Kingdom</option>
-                                                        <option value="CA">Canada</option>
-                                                        <option value="AU">Australia</option>
-                                                        <option value="DE">Germany</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="GB29 NWBK 6016 1331 9268 19"
-                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                                        value={bankDetails.iban}
-                                                        onChange={(e) => setBankDetails({ ...bankDetails, iban: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">SWIFT/BIC</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="ABCDGB2A"
-                                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                                        value={bankDetails.swiftBic}
-                                                        onChange={(e) => setBankDetails({ ...bankDetails, swiftBic: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Account Number *</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="1234567890"
-                                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                                    value={bankDetails.accountNumber}
-                                                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                                                    required
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Routing Number *</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="021000021"
-                                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
-                                                    value={bankDetails.routingNumber}
-                                                    onChange={(e) => setBankDetails({ ...bankDetails, routingNumber: e.target.value })}
-                                                    required
-                                                />
-                                            </div>
-                                        </>
-                                    )}
-
-                                    <div className="flex space-x-3 mt-6">
-                                        <button
-                                            onClick={() => {
-                                                setShowBankForm(false);
-                                                setBankType('');
-                                                setBankDetails({
-                                                    accountNumber: '',
-                                                    routingNumber: '',
-                                                    accountName: '',
-                                                    currency: 'USD',
-                                                    country: '',
-                                                    accountType: 'checking',
-                                                    iban: '',
-                                                    swiftBic: '',
-                                                    wiseEmail: ''
-                                                });
-                                            }}
-                                            className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleBankConnect}
-                                            disabled={
-                                                !bankDetails.accountName ||
-                                                (bankType === 'wise' ? (!bankDetails.wiseEmail || !bankDetails.currency || !bankDetails.country) :
-                                                    (!bankDetails.accountNumber || !bankDetails.routingNumber))
-                                            }
-                                            className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            Connect {bankType === 'wise' ? 'Wise Account' : 'Bank Account'}
-                                        </button>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Doe"
+                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                            value={paypalDetails.lastName}
+                                            onChange={(e) => setPaypalDetails({ ...paypalDetails, lastName: e.target.value })}
+                                            required
+                                        />
                                     </div>
                                 </div>
-                            )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">PayPal Email Address *</label>
+                                    <input
+                                        type="email"
+                                        placeholder="your.email@example.com"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                        value={paypalDetails.paypalEmail}
+                                        onChange={(e) => setPaypalDetails({ ...paypalDetails, paypalEmail: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Confirm PayPal Email Address *</label>
+                                    <input
+                                        type="email"
+                                        placeholder="your.email@example.com"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200"
+                                        value={paypalDetails.confirmPaypalEmail}
+                                        onChange={(e) => setPaypalDetails({ ...paypalDetails, confirmPaypalEmail: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="flex space-x-3 mt-6">
+                                    <button
+                                        onClick={() => {
+                                            setShowPaypalForm(false);
+                                            setPaypalDetails({
+                                                paypalEmail: '',
+                                                confirmPaypalEmail: '',
+                                                firstName: '',
+                                                lastName: ''
+                                            });
+                                        }}
+                                        className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handlePaypalConnect}
+                                        disabled={
+                                            !paypalDetails.paypalEmail ||
+                                            !paypalDetails.confirmPaypalEmail ||
+                                            !paypalDetails.firstName ||
+                                            !paypalDetails.lastName ||
+                                            paypalDetails.paypalEmail !== paypalDetails.confirmPaypalEmail
+                                        }
+                                        className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Connect PayPal Account
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -612,7 +505,7 @@ const Profile = () => {
                                 { label: 'Profile Information', completed: !!(user?.name && user?.email) },
                                 { label: 'ID Verification', completed: user?.idStatus === 'verified' },
                                 { label: 'CV/Resume', completed: user?.cvStatus === 'verified' },
-                                { label: 'Bank Connection', completed: user?.bankConnected }
+                                { label: 'PayPal Connection', completed: user?.paypalConnected }
                             ].map((item, index) => (
                                 <div key={index} className="flex items-center justify-between">
                                     <span className="text-gray-700">{item.label}</span>
