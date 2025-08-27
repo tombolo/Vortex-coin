@@ -16,9 +16,12 @@ export const metadata: Metadata = {
   title: "TaskForge",
   description: "A modern AI-powered task management app",
   icons: {
-    icon: "/favicon.ico", // 👈 add this line
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 };
+
 
 export default function RootLayout({
   children,

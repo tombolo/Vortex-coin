@@ -219,7 +219,7 @@ export default function Home() {
       {/* Modern Header */}
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-200/50 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex items-center space-x-2">
-          <Image src="/FORGE.png" alt="TaskForge Logo" width={32} height={32} />
+          <Image src="/FORGE.png" alt="TaskForge Logo" width={50} height={32} />
         </div>
 
         <div className="flex items-center space-x-3">
