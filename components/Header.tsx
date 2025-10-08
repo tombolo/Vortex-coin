@@ -27,7 +27,7 @@ export default function Header({ isLoggedIn, balance, onLogout, activeTab, onTab
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b-2 border-slate-200 shadow-lg">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Top Row - Logo, Balance, Actions */}
-        <div className="flex justify-between items-center py-2.5 border-b border-slate-100">
+        <div className={`flex justify-between items-center border-b border-slate-100 ${isLoggedIn ? 'py-2.5' : 'py-3'}`}>
           {/* Logo Section */}
           <div className="flex items-center space-x-2 group cursor-pointer" onClick={() => router.push("/")}>
             <div className="relative">
@@ -49,8 +49,8 @@ export default function Header({ isLoggedIn, balance, onLogout, activeTab, onTab
             </div>
           </div>
 
-          {/* Mobile Actions (only when logged in) */}
-          {isLoggedIn && (
+          {/* Mobile Actions */}
+          {isLoggedIn ? (
             <div className="flex md:hidden items-center gap-2">
               {/* Profile Button */}
               <button
@@ -67,6 +67,24 @@ export default function Header({ isLoggedIn, balance, onLogout, activeTab, onTab
                 className="p-2 bg-slate-100 rounded-lg border-2 border-slate-300 hover:shadow-md transition-all duration-300"
               >
                 {mobileMenuOpen ? <FaTimes className="text-slate-700" /> : <FaBars className="text-slate-700" />}
+              </button>
+            </div>
+          ) : (
+            <div className="flex md:hidden items-center gap-2">
+              {/* Mobile Login Button */}
+              <button
+                onClick={() => router.push("/login")}
+                className="px-3 py-1.5 text-xs font-bold text-blue-900 bg-white border-2 border-blue-900/30 rounded-lg hover:bg-blue-50 transition-all duration-300"
+              >
+                LOGIN
+              </button>
+              
+              {/* Mobile Sign Up Button */}
+              <button
+                onClick={() => router.push("/signup")}
+                className="px-3 py-1.5 bg-gradient-to-r from-blue-900 to-cyan-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-blue-700"
+              >
+                SIGN UP
               </button>
             </div>
           )}
@@ -115,23 +133,23 @@ export default function Header({ isLoggedIn, balance, onLogout, activeTab, onTab
                 {/* Login Button */}
                 <button
                   onClick={() => router.push("/login")}
-                  className="relative px-4 py-1.5 font-bold text-blue-900 bg-white border-2 border-blue-900/30 rounded-lg overflow-hidden group transition-all duration-300 hover:border-blue-900 hover:shadow-md"
+                  className="relative px-6 py-2.5 font-bold text-blue-900 bg-white border-2 border-blue-900/30 rounded-xl overflow-hidden group transition-all duration-300 hover:border-blue-900 hover:shadow-md"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                  <span className="relative z-10 text-[10px] font-extrabold tracking-wide">LOGIN</span>
+                  <span className="relative z-10 text-sm font-extrabold tracking-wide">LOGIN</span>
                 </button>
 
                 {/* Sign Up Button */}
                 <button
                   onClick={() => router.push("/signup")}
-                  className="relative px-4 py-1.5 bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-700 hover:from-blue-950 hover:via-blue-900 hover:to-cyan-800 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 overflow-hidden group border border-blue-700"
+                  className="relative px-6 py-2.5 bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-700 hover:from-blue-950 hover:via-blue-900 hover:to-cyan-800 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 overflow-hidden group border border-blue-700"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-700 via-blue-800 to-blue-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <span className="relative z-10 text-[10px] font-extrabold flex items-center gap-1.5 tracking-wide">
-                    <FaShieldAlt className="text-amber-400 text-[9px]" />
+                  <span className="relative z-10 text-sm font-extrabold flex items-center gap-2 tracking-wide">
+                    <FaShieldAlt className="text-amber-400 text-xs" />
                     SIGN UP
                     <svg 
-                      className="w-2.5 h-2.5 transform group-hover:translate-x-1 transition-transform duration-300" 
+                      className="w-3 h-3 transform group-hover:translate-x-1 transition-transform duration-300" 
                       fill="none" 
                       stroke="currentColor" 
                       viewBox="0 0 24 24"
