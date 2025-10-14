@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebaseConfig";
-import { getStorage } from "firebase/storage";
-const storage = getStorage();
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FaUserCircle, FaArrowLeft, FaCoins, FaSignOutAlt, FaIdCard, FaFileAlt, FaCheckCircle, FaClock, FaUpload, FaTimes, FaShieldAlt, FaTrophy, FaStar } from "react-icons/fa";
 import { SiAlipay } from "react-icons/si";
 import { signOut, onAuthStateChanged } from "firebase/auth";
@@ -35,7 +32,8 @@ const Profile = () => {
         const documentData = {
             file,
             url,
-            uploadDate: new Date()
+            uploadDate: new Date(),
+            status: 'pending' // Track the status locally
         };
         
         const existingData = JSON.parse(localStorage.getItem('uploadedDocuments') || '{}');
@@ -46,7 +44,8 @@ const Profile = () => {
                 size: file.size,
                 type: file.type,
                 lastModified: file.lastModified
-            }
+            },
+            status: 'pending'
         };
         
         localStorage.setItem('uploadedDocuments', JSON.stringify(existingData));
@@ -109,18 +108,17 @@ const Profile = () => {
 
         setUploading(true);
         try {
-            const fileRef = ref(storage, `verifications/${user.uid}/${fileType}/${selectedFile.name}`);
-            await uploadBytes(fileRef, selectedFile);
-            const downloadURL = await getDownloadURL(fileRef);
-
+            // Create a mock download URL for localStorage
+            const mockDownloadURL = `local://${fileType}/${selectedFile.name}`;
+            
+            // Update Firestore to show pending status (without actual file upload)
             await updateDoc(doc(db, "users", user.uid), {
                 [`${fileType}Status`]: 'pending',
-                [`${fileType}Url`]: downloadURL,
                 [`${fileType}UploadDate`]: new Date()
             });
 
-            // Save to localStorage
-            saveDocumentToLocalStorage(fileType, selectedFile, downloadURL);
+            // Save to localStorage with pending status
+            saveDocumentToLocalStorage(fileType, selectedFile, mockDownloadURL);
 
             // Refresh user data
             const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -317,12 +315,10 @@ const Profile = () => {
                                             <p className="font-bold text-slate-900 text-lg">ID Document</p>
                                             <p className="text-sm font-medium ${
                                                 user?.idStatus === 'verified' ? 'text-emerald-600' :
-                                                user?.idStatus === 'pending' ? 'text-amber-600' : 
-                                                localDocuments.id ? 'text-blue-600' : 'text-slate-500'
+                                                (user?.idStatus === 'pending' || localDocuments.id) ? 'text-amber-600' : 'text-slate-500'
                                             }">
                                                 {user?.idStatus === 'verified' ? 'Verified ✓' :
-                                                 user?.idStatus === 'pending' ? 'Under Review' : 
-                                                 localDocuments.id ? `Uploaded ✓ (${localDocuments.id.file.name})` : 'Action Required'}
+                                                 (user?.idStatus === 'pending' || localDocuments.id) ? 'Under Review' : 'Action Required'}
                                             </p>
                                             {localDocuments.id && (
                                                 <p className="text-xs text-slate-500">
@@ -333,18 +329,8 @@ const Profile = () => {
                                     </div>
                                     {user?.idStatus === 'verified' ? (
                                         <FaCheckCircle className="text-emerald-500 text-2xl" />
-                                    ) : user?.idStatus === 'pending' ? (
+                                    ) : (user?.idStatus === 'pending' || localDocuments.id) ? (
                                         <FaClock className="text-amber-500 text-2xl animate-pulse" />
-                                    ) : localDocuments.id ? (
-                                        <div className="flex items-center gap-2">
-                                            <FaCheckCircle className="text-blue-500 text-xl" />
-                                            <button
-                                                onClick={() => setFileType('id')}
-                                                className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-xs font-bold hover:from-blue-700 hover:to-cyan-700 transition-all duration-300"
-                                            >
-                                                Re-upload
-                                            </button>
-                                        </div>
                                     ) : (
                                         <button
                                             onClick={() => setFileType('id')}
@@ -372,12 +358,10 @@ const Profile = () => {
                                             <p className="font-bold text-slate-900 text-lg">CV/Resume</p>
                                             <p className={`text-sm font-medium ${
                                                 user?.cvStatus === 'verified' ? 'text-emerald-600' :
-                                                user?.cvStatus === 'pending' ? 'text-amber-600' : 
-                                                localDocuments.cv ? 'text-blue-600' : 'text-slate-500'
+                                                (user?.cvStatus === 'pending' || localDocuments.cv) ? 'text-amber-600' : 'text-slate-500'
                                             }`}>
                                                 {user?.cvStatus === 'verified' ? 'Verified ✓' :
-                                                 user?.cvStatus === 'pending' ? 'Under Review' : 
-                                                 localDocuments.cv ? `Uploaded ✓ (${localDocuments.cv.file.name})` : 'Action Required'}
+                                                 (user?.cvStatus === 'pending' || localDocuments.cv) ? 'Under Review' : 'Action Required'}
                                             </p>
                                             {localDocuments.cv && (
                                                 <p className="text-xs text-slate-500">
@@ -388,18 +372,8 @@ const Profile = () => {
                                     </div>
                                     {user?.cvStatus === 'verified' ? (
                                         <FaCheckCircle className="text-emerald-500 text-2xl" />
-                                    ) : user?.cvStatus === 'pending' ? (
+                                    ) : (user?.cvStatus === 'pending' || localDocuments.cv) ? (
                                         <FaClock className="text-amber-500 text-2xl animate-pulse" />
-                                    ) : localDocuments.cv ? (
-                                        <div className="flex items-center gap-2">
-                                            <FaCheckCircle className="text-blue-500 text-xl" />
-                                            <button
-                                                onClick={() => setFileType('cv')}
-                                                className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-xs font-bold hover:from-blue-700 hover:to-cyan-700 transition-all duration-300"
-                                            >
-                                                Re-upload
-                                            </button>
-                                        </div>
                                     ) : (
                                         <button
                                             onClick={() => setFileType('cv')}
