@@ -606,44 +606,6 @@ const Profile = () => {
                         </div>
                     </div>
 
-                    {/* Debug Section - Local Storage Status */}
-                    {(localDocuments.id || localDocuments.cv) && (
-                        <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-slate-200">
-                            <h3 className="text-lg font-bold text-slate-900 mb-4">Local Storage Status</h3>
-                            <div className="space-y-3">
-                                {localDocuments.id && (
-                                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                        <div>
-                                            <p className="font-semibold text-blue-900">ID Document</p>
-                                            <p className="text-sm text-blue-700">{localDocuments.id.file.name}</p>
-                                            <p className="text-xs text-blue-600">
-                                                Uploaded: {localDocuments.id.uploadDate.toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <FaCheckCircle className="text-blue-500 text-xl" />
-                                    </div>
-                                )}
-                                {localDocuments.cv && (
-                                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                        <div>
-                                            <p className="font-semibold text-blue-900">CV/Resume</p>
-                                            <p className="text-sm text-blue-700">{localDocuments.cv.file.name}</p>
-                                            <p className="text-xs text-blue-600">
-                                                Uploaded: {localDocuments.cv.uploadDate.toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <FaCheckCircle className="text-blue-500 text-xl" />
-                                    </div>
-                                )}
-                            </div>
-                            <button
-                                onClick={clearLocalStorage}
-                                className="w-full mt-4 py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold transition-all duration-300"
-                            >
-                                Clear Local Storage (Debug)
-                            </button>
-                        </div>
-                    )}
 
                     {/* Logout */}
                     <button
