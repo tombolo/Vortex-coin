@@ -25,6 +25,61 @@ const Profile = () => {
         confirmAlipayAccount: '',
         fullName: ''
     });
+    const [localDocuments, setLocalDocuments] = useState<{
+        id?: { file: File; url: string; uploadDate: Date };
+        cv?: { file: File; url: string; uploadDate: Date };
+    }>({});
+
+    // Utility functions for localStorage
+    const saveDocumentToLocalStorage = (fileType: 'id' | 'cv', file: File, url: string) => {
+        const documentData = {
+            file,
+            url,
+            uploadDate: new Date()
+        };
+        
+        const existingData = JSON.parse(localStorage.getItem('uploadedDocuments') || '{}');
+        existingData[fileType] = {
+            ...documentData,
+            file: {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified
+            }
+        };
+        
+        localStorage.setItem('uploadedDocuments', JSON.stringify(existingData));
+        setLocalDocuments(prev => ({ ...prev, [fileType]: documentData }));
+    };
+
+    const loadDocumentsFromLocalStorage = () => {
+        try {
+            const savedData = localStorage.getItem('uploadedDocuments');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                const loadedDocs: any = {};
+                
+                Object.keys(parsedData).forEach(key => {
+                    if (parsedData[key]) {
+                        loadedDocs[key] = {
+                            ...parsedData[key],
+                            uploadDate: new Date(parsedData[key].uploadDate)
+                        };
+                    }
+                });
+                
+                setLocalDocuments(loadedDocs);
+            }
+        } catch (error) {
+            console.error('Error loading documents from localStorage:', error);
+        }
+    };
+
+    const clearLocalStorage = () => {
+        localStorage.removeItem('uploadedDocuments');
+        setLocalDocuments({});
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -33,6 +88,8 @@ const Profile = () => {
                 if (userDoc.exists()) {
                     setUser({ uid: currentUser.uid, ...userDoc.data() });
                 }
+                // Load documents from localStorage
+                loadDocumentsFromLocalStorage();
             } else {
                 router.push("/login");
             }
@@ -61,6 +118,9 @@ const Profile = () => {
                 [`${fileType}Url`]: downloadURL,
                 [`${fileType}UploadDate`]: new Date()
             });
+
+            // Save to localStorage
+            saveDocumentToLocalStorage(fileType, selectedFile, downloadURL);
 
             // Refresh user data
             const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -248,6 +308,7 @@ const Profile = () => {
                                         <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${
                                             user?.idStatus === 'verified' ? 'bg-gradient-to-br from-emerald-500 to-green-500' :
                                             user?.idStatus === 'pending' ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 
+                                            localDocuments.id ? 'bg-gradient-to-br from-blue-500 to-cyan-500' :
                                             'bg-gradient-to-br from-slate-300 to-slate-400'
                                         }`}>
                                             <FaIdCard className="text-2xl text-white" />
@@ -256,17 +317,34 @@ const Profile = () => {
                                             <p className="font-bold text-slate-900 text-lg">ID Document</p>
                                             <p className="text-sm font-medium ${
                                                 user?.idStatus === 'verified' ? 'text-emerald-600' :
-                                                user?.idStatus === 'pending' ? 'text-amber-600' : 'text-slate-500'
+                                                user?.idStatus === 'pending' ? 'text-amber-600' : 
+                                                localDocuments.id ? 'text-blue-600' : 'text-slate-500'
                                             }">
                                                 {user?.idStatus === 'verified' ? 'Verified ✓' :
-                                                 user?.idStatus === 'pending' ? 'Under Review' : 'Action Required'}
+                                                 user?.idStatus === 'pending' ? 'Under Review' : 
+                                                 localDocuments.id ? `Uploaded ✓ (${localDocuments.id.file.name})` : 'Action Required'}
                                             </p>
+                                            {localDocuments.id && (
+                                                <p className="text-xs text-slate-500">
+                                                    Uploaded: {localDocuments.id.uploadDate.toLocaleDateString()}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     {user?.idStatus === 'verified' ? (
                                         <FaCheckCircle className="text-emerald-500 text-2xl" />
                                     ) : user?.idStatus === 'pending' ? (
                                         <FaClock className="text-amber-500 text-2xl animate-pulse" />
+                                    ) : localDocuments.id ? (
+                                        <div className="flex items-center gap-2">
+                                            <FaCheckCircle className="text-blue-500 text-xl" />
+                                            <button
+                                                onClick={() => setFileType('id')}
+                                                className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-xs font-bold hover:from-blue-700 hover:to-cyan-700 transition-all duration-300"
+                                            >
+                                                Re-upload
+                                            </button>
+                                        </div>
                                     ) : (
                                         <button
                                             onClick={() => setFileType('id')}
@@ -285,6 +363,7 @@ const Profile = () => {
                                         <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${
                                             user?.cvStatus === 'verified' ? 'bg-gradient-to-br from-emerald-500 to-green-500' :
                                             user?.cvStatus === 'pending' ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 
+                                            localDocuments.cv ? 'bg-gradient-to-br from-blue-500 to-cyan-500' :
                                             'bg-gradient-to-br from-slate-300 to-slate-400'
                                         }`}>
                                             <FaFileAlt className="text-2xl text-white" />
@@ -293,17 +372,34 @@ const Profile = () => {
                                             <p className="font-bold text-slate-900 text-lg">CV/Resume</p>
                                             <p className={`text-sm font-medium ${
                                                 user?.cvStatus === 'verified' ? 'text-emerald-600' :
-                                                user?.cvStatus === 'pending' ? 'text-amber-600' : 'text-slate-500'
+                                                user?.cvStatus === 'pending' ? 'text-amber-600' : 
+                                                localDocuments.cv ? 'text-blue-600' : 'text-slate-500'
                                             }`}>
                                                 {user?.cvStatus === 'verified' ? 'Verified ✓' :
-                                                 user?.cvStatus === 'pending' ? 'Under Review' : 'Action Required'}
+                                                 user?.cvStatus === 'pending' ? 'Under Review' : 
+                                                 localDocuments.cv ? `Uploaded ✓ (${localDocuments.cv.file.name})` : 'Action Required'}
                                             </p>
+                                            {localDocuments.cv && (
+                                                <p className="text-xs text-slate-500">
+                                                    Uploaded: {localDocuments.cv.uploadDate.toLocaleDateString()}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     {user?.cvStatus === 'verified' ? (
                                         <FaCheckCircle className="text-emerald-500 text-2xl" />
                                     ) : user?.cvStatus === 'pending' ? (
                                         <FaClock className="text-amber-500 text-2xl animate-pulse" />
+                                    ) : localDocuments.cv ? (
+                                        <div className="flex items-center gap-2">
+                                            <FaCheckCircle className="text-blue-500 text-xl" />
+                                            <button
+                                                onClick={() => setFileType('cv')}
+                                                className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-xs font-bold hover:from-blue-700 hover:to-cyan-700 transition-all duration-300"
+                                            >
+                                                Re-upload
+                                            </button>
+                                        </div>
                                     ) : (
                                         <button
                                             onClick={() => setFileType('cv')}
@@ -535,6 +631,45 @@ const Profile = () => {
                             })}
                         </div>
                     </div>
+
+                    {/* Debug Section - Local Storage Status */}
+                    {(localDocuments.id || localDocuments.cv) && (
+                        <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-slate-200">
+                            <h3 className="text-lg font-bold text-slate-900 mb-4">Local Storage Status</h3>
+                            <div className="space-y-3">
+                                {localDocuments.id && (
+                                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div>
+                                            <p className="font-semibold text-blue-900">ID Document</p>
+                                            <p className="text-sm text-blue-700">{localDocuments.id.file.name}</p>
+                                            <p className="text-xs text-blue-600">
+                                                Uploaded: {localDocuments.id.uploadDate.toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <FaCheckCircle className="text-blue-500 text-xl" />
+                                    </div>
+                                )}
+                                {localDocuments.cv && (
+                                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div>
+                                            <p className="font-semibold text-blue-900">CV/Resume</p>
+                                            <p className="text-sm text-blue-700">{localDocuments.cv.file.name}</p>
+                                            <p className="text-xs text-blue-600">
+                                                Uploaded: {localDocuments.cv.uploadDate.toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <FaCheckCircle className="text-blue-500 text-xl" />
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={clearLocalStorage}
+                                className="w-full mt-4 py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold transition-all duration-300"
+                            >
+                                Clear Local Storage (Debug)
+                            </button>
+                        </div>
+                    )}
 
                     {/* Logout */}
                     <button
