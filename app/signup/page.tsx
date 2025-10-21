@@ -23,11 +23,18 @@ export default function Signup() {
         setIsLoading(true);
         setError("");
         setNotice("");
-
         try {
+            console.log("[Signup] Start", {
+                email,
+                name,
+                phoneLength: phone?.length ?? 0,
+                hasPassword: Boolean(password),
+            });
+
             // Generate a 6-digit code and save to Firestore for verification (keyed by email)
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+            console.log("[Signup] Generated verification code (DEV)", code);
             await setDoc(doc(db, "emailVerifications", email), {
                 code,
                 email,
@@ -35,17 +42,26 @@ export default function Signup() {
                 expiresAt,
                 attempts: 0,
             });
+            console.log("[Signup] Saved verification doc in Firestore", { email, expiresAt: expiresAt.toISOString() });
 
             // Ask server to email the code (RESEND_API_KEY required in env on server)
             try {
-                await fetch("/api/send-code", {
+                console.log("[Signup] Sending email via /api/send-code");
+                const resp = await fetch("/api/send-code", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email, name, code }),
                 });
+                const text = await resp.text().catch(() => "");
+                console.log("[Signup] /api/send-code response", {
+                    ok: resp.ok,
+                    status: resp.status,
+                    statusText: resp.statusText,
+                    body: text?.slice(0, 500),
+                });
             } catch (mailErr) {
                 // Non-blocking: allow manual code delivery in dev
-                console.error("Mail send failed", mailErr);
+                console.error("[Signup] Mail send failed", mailErr);
             }
 
             // Save pending signup locally (used by /verify to finalize account creation)
@@ -55,11 +71,14 @@ export default function Signup() {
                     JSON.stringify({ name, email, phone, password })
                 );
                 sessionStorage.setItem("pendingCode", code);
+                console.log("[Signup] Stored pendingSignup and pendingCode in sessionStorage");
             } catch {}
 
             setNotice("We sent a 6-digit verification code to your email. Please verify to continue.");
+            console.log("[Signup] Navigating to /verify");
             router.push("/verify");
         } catch (err: any) {
+            console.error("[Signup] Failed", err);
             setError(err.message || "Failed to create an account. Please try again.");
         } finally {
             setIsLoading(false);
