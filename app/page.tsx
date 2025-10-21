@@ -235,7 +235,7 @@ export default function Home() {
               <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-400 rounded-full filter blur-3xl opacity-10 animate-float" style={{ animationDelay: '2s' }}></div>
             </div>
             {/* Isometric animated tiles belt */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1400px] max-w-none opacity-[.9]">
+            <div className="absolute left-1/2 top-[75%] -translate-x-1/2 w-[1600px] max-w-[92vw] opacity-[.9]">
               <AnimatedTiles />
             </div>
 

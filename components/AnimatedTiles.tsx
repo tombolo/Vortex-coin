@@ -4,16 +4,16 @@ import { FaFlask, FaCode, FaBolt, FaImage, FaMicrophone, FaLanguage, FaRobot, Fa
 
 const icons = [FaFlask, FaCode, FaBolt, FaImage, FaMicrophone, FaLanguage, FaRobot, FaBrain, FaGlobe, FaChartLine];
 const palettes = [
-  "#0ea5e9",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-  "#22c55e",
-  "#f97316",
-  "#3b82f6",
-  "#e11d48",
+  "#38bdf8", // sky-400
+  "#22d3ee", // cyan-400
+  "#34d399", // emerald-400
+  "#fbbf24", // amber-400
+  "#fb7185", // rose-400
+  "#a78bfa", // violet-400
+  "#60a5fa", // blue-400
+  "#f97316", // orange-500
+  "#84cc16", // lime-500
+  "#e879f9", // fuchsia-400
 ];
 
 function Row({ index }: { index: number }) {
