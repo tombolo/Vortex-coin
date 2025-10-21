@@ -1,68 +1,90 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
+import { db } from "@/lib/firebaseConfig";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebaseConfig";
 import { doc, getDoc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
-  const [uid, setUid] = useState<string | null>(null);
   const [email, setEmail] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [codeInput, setCodeInput] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
+  // Load pending signup from sessionStorage
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.replace("/login");
+    try {
+      const raw = sessionStorage.getItem("pendingSignup");
+      if (!raw) {
+        router.replace("/signup");
         return;
       }
-      setUid(user.uid);
-      // Load existing verification doc to show target email
-      const vRef = doc(db, "emailVerifications", user.uid);
-      const snap = await getDoc(vRef);
-      if (snap.exists()) {
-        const data = snap.data() as any;
-        setEmail(data.email || user.email || "");
-      } else {
-        // if missing, create a placeholder entry if possible
-        setEmail(user.email || "");
+      const pending = JSON.parse(raw);
+      if (!pending?.email) {
+        router.replace("/signup");
+        return;
       }
-    });
-    return () => unsub();
+      setEmail(pending.email || "");
+      setName(pending.name || "");
+      setPhone(pending.phone || "");
+      setPassword(pending.password || "");
+    } catch {
+      router.replace("/signup");
+    }
   }, [router]);
 
   const verify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uid) return;
+    if (!email) return;
     setLoading(true);
     setError("");
     setNotice("");
     try {
-      const vRef = doc(db, "emailVerifications", uid);
+      const vRef = doc(db, "emailVerifications", email);
       const vSnap = await getDoc(vRef);
       if (!vSnap.exists()) throw new Error("No verification in progress. Please resend code.");
       const data = vSnap.data() as any;
       const now = new Date();
-      if (data.expiresAt && data.expiresAt.toDate) {
-        if (data.expiresAt.toDate() < now) throw new Error("Code expired. Please resend a new code.");
-      } else if (data.expiresAt && data.expiresAt.seconds) {
-        if (new Date(data.expiresAt.seconds * 1000) < now) throw new Error("Code expired. Please resend a new code.");
-      }
+      const exp = data.expiresAt?.toDate ? data.expiresAt.toDate() : (data.expiresAt?.seconds ? new Date(data.expiresAt.seconds * 1000) : null);
+      if (exp && exp < now) throw new Error("Code expired. Please resend a new code.");
       const expected = String(data.code);
       if (codeInput.trim() !== expected) {
         const attempts = (data.attempts || 0) + 1;
         await updateDoc(vRef, { attempts });
         throw new Error("Invalid code. Please try again.");
       }
-      // Mark user as verified
-      await updateDoc(doc(db, "users", uid), { emailVerified: true });
+
+      // Create Auth account now that email is verified
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = cred.user.uid;
+
+      // Create user profile
+      await setDoc(doc(db, "users", uid), {
+        name,
+        email,
+        phone,
+        balance: 0,
+        profileCompletion: 35,
+        completedTasks: [],
+        recentPayouts: [],
+        withdrawnAmount: 0,
+        emailVerified: true,
+        createdAt: new Date(),
+      });
+
+      // Cleanup verification doc
       await deleteDoc(vRef);
+
+      try { sessionStorage.removeItem("pendingSignup"); } catch {}
+
       setNotice("Email verified. Redirecting...");
       setTimeout(() => router.replace("/"), 900);
     } catch (err: any) {
@@ -73,14 +95,14 @@ export default function VerifyEmailPage() {
   };
 
   const resend = async () => {
-    if (!uid || !email) return;
+    if (!email) return;
     setResending(true);
     setError("");
     setNotice("");
     try {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-      await setDoc(doc(db, "emailVerifications", uid), {
+      await setDoc(doc(db, "emailVerifications", email), {
         code,
         email,
         createdAt: new Date(),
@@ -90,7 +112,7 @@ export default function VerifyEmailPage() {
       await fetch("/api/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name: "", code }),
+        body: JSON.stringify({ email, name, code }),
       });
       setNotice("A new verification code has been sent to your email.");
     } catch (err: any) {

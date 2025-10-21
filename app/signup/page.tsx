@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { auth, db } from "@/lib/firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { db } from "@/lib/firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -26,28 +25,10 @@ export default function Signup() {
         setNotice("");
 
         try {
-            // Create user in Firebase Authentication
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // Store additional data in Firestore with initial balance of 0 and unverified email state
-            await setDoc(doc(db, "users", user.uid), {
-                name,
-                email,
-                phone,
-                balance: 0,
-                profileCompletion: 35,
-                completedTasks: [],
-                recentPayouts: [],
-                withdrawnAmount: 0,
-                emailVerified: false,
-                createdAt: new Date()
-            });
-
-            // Generate a 6-digit code and save to Firestore for verification
+            // Generate a 6-digit code and save to Firestore for verification (keyed by email)
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-            await setDoc(doc(db, "emailVerifications", user.uid), {
+            await setDoc(doc(db, "emailVerifications", email), {
                 code,
                 email,
                 createdAt: new Date(),
@@ -66,6 +47,14 @@ export default function Signup() {
                 // Non-blocking: allow manual code delivery in dev
                 console.error("Mail send failed", mailErr);
             }
+
+            // Save pending signup locally (used by /verify to finalize account creation)
+            try {
+                sessionStorage.setItem(
+                    "pendingSignup",
+                    JSON.stringify({ name, email, phone, password })
+                );
+            } catch {}
 
             setNotice("We sent a 6-digit verification code to your email. Please verify to continue.");
             router.push("/verify");
