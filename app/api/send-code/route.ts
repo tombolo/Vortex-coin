@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "TaskForge <no-reply@resend.dev>",
+        from: "TaskForge <onboarding@resend.dev>",
         to: [email],
         subject,
         html,

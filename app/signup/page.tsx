@@ -54,6 +54,7 @@ export default function Signup() {
                     "pendingSignup",
                     JSON.stringify({ name, email, phone, password })
                 );
+                sessionStorage.setItem("pendingCode", code);
             } catch {}
 
             setNotice("We sent a 6-digit verification code to your email. Please verify to continue.");
