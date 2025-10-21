@@ -17,6 +17,8 @@ import Support from "@/components/Support";
 import Loading from "@/components/Loading";
 import Notification from "@/components/Notification";
 import { getAvailableProjects, Project, generateOutlierTask, OutlierTask } from "@/data/projects";
+import AnimatedTiles from "@/components/AnimatedTiles";
+import "./AnimatedTiles.css";
 
 export default function Home() {
   const [balance, setBalance] = useState(0);
@@ -229,6 +231,10 @@ export default function Home() {
               <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
               <div className="absolute top-10 left-10 w-72 h-72 bg-blue-400 rounded-full filter blur-3xl opacity-10 animate-float"></div>
               <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-400 rounded-full filter blur-3xl opacity-10 animate-float" style={{ animationDelay: '2s' }}></div>
+            </div>
+            {/* Isometric animated tiles belt */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-[-140px] w-[1400px] max-w-none opacity-[.9]">
+              <AnimatedTiles />
             </div>
 
             <div className="max-w-6xl mx-auto relative z-10">
