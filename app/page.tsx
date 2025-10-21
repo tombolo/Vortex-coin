@@ -234,10 +234,6 @@ export default function Home() {
               <div className="absolute top-10 left-10 w-72 h-72 bg-blue-400 rounded-full filter blur-3xl opacity-10 animate-float"></div>
               <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-400 rounded-full filter blur-3xl opacity-10 animate-float" style={{ animationDelay: '2s' }}></div>
             </div>
-            {/* Isometric animated tiles belt */}
-            <div className="absolute left-1/2 top-[75%] -translate-x-1/2 w-[1600px] max-w-[92vw] opacity-[.9]">
-              <AnimatedTiles />
-            </div>
 
             <div className="max-w-6xl mx-auto relative z-10">
               {/* Animated Icon */}
@@ -312,6 +308,18 @@ export default function Home() {
                   <div className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">4.9/5</div>
                   <div className="text-slate-600 font-semibold">User Satisfaction</div>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Animated Tiles Section (standalone) */}
+          <section className="relative overflow-hidden py-24">
+            <div className="absolute inset-0">
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+            </div>
+            <div className="relative h-[360px] sm:h-[420px]">
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1600px] max-w-[92vw] opacity-[.95]">
+                <AnimatedTiles />
               </div>
             </div>
           </section>
