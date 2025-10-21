@@ -19,6 +19,8 @@ import Notification from "@/components/Notification";
 import { getAvailableProjects, Project, generateOutlierTask, OutlierTask } from "@/data/projects";
 import AnimatedTiles from "@/components/AnimatedTiles";
 import "./AnimatedTiles.css";
+import RoleShowcase from "@/components/RoleShowcase";
+import "./RoleShowcase.css";
 
 export default function Home() {
   const [balance, setBalance] = useState(0);
@@ -233,7 +235,7 @@ export default function Home() {
               <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-400 rounded-full filter blur-3xl opacity-10 animate-float" style={{ animationDelay: '2s' }}></div>
             </div>
             {/* Isometric animated tiles belt */}
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-[-140px] w-[1400px] max-w-none opacity-[.9]">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1400px] max-w-none opacity-[.9]">
               <AnimatedTiles />
             </div>
 
@@ -313,6 +315,9 @@ export default function Home() {
               </div>
             </div>
           </section>
+
+          {/* Roles/Experts Showcase Section */}
+          <RoleShowcase />
 
           {/* Features Section */}
           <section className="py-20 bg-white border-y border-slate-200 px-4 relative overflow-hidden">
