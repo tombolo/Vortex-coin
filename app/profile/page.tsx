@@ -149,6 +149,19 @@ const Profile = () => {
             return;
         }
 
+        // Prevent duplicate connection in this browser using localStorage bindings
+        try {
+            const currentEmail = (user?.email || "").toLowerCase();
+            const accountKey = alipayDetails.alipayAccount.trim().toLowerCase();
+            const raw = localStorage.getItem("alipay_bindings") || "{}";
+            const bindings = JSON.parse(raw || "{}");
+            const existingEmail = bindings[accountKey];
+            if (existingEmail && existingEmail !== currentEmail) {
+                alert("This Alipay account is already connected to another profile on this device. Please use a different Alipay account.");
+                return;
+            }
+        } catch {}
+
         try {
             await updateDoc(doc(db, "users", user.uid), {
                 alipayConnected: true,
@@ -164,6 +177,17 @@ const Profile = () => {
             if (userDoc.exists()) {
                 setUser({ uid: user.uid, ...userDoc.data() });
             }
+
+            // Persist binding locally to avoid duplicate connections in this browser
+            try {
+                const currentEmail = (user?.email || "").toLowerCase();
+                const accountKey = alipayDetails.alipayAccount.trim().toLowerCase();
+                const raw = localStorage.getItem("alipay_bindings") || "{}";
+                const bindings = JSON.parse(raw || "{}");
+                bindings[accountKey] = currentEmail;
+                localStorage.setItem("alipay_bindings", JSON.stringify(bindings));
+                localStorage.setItem("alipay_connected_email", currentEmail);
+            } catch {}
 
             setAlipayDetails({
                 alipayAccount: '',
