@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { FaUserCircle, FaArrowLeft, FaCoins, FaSignOutAlt, FaIdCard, FaFileAlt, FaCheckCircle, FaClock, FaUpload, FaTimes, FaShieldAlt, FaTrophy, FaStar } from "react-icons/fa";
+import { FaUserCircle, FaArrowLeft, FaCoins, FaSignOutAlt, FaIdCard, FaFileAlt, FaCheckCircle, FaClock, FaUpload, FaTimes, FaShieldAlt, FaTrophy, FaStar, FaWhatsapp } from "react-icons/fa";
 import { SiAlipay } from "react-icons/si";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import Loading from "@/components/Loading";
@@ -412,7 +412,31 @@ const Profile = () => {
                                         </button>
                                     )}
                                 </div>
+                                {!user?.alipayConnected && (
+                                  <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                                    <p className="text-sm text-emerald-900 font-semibold mb-2">If you don't have an Alipay account, join our WhatsApp to get one:</p>
+                                    <div className="flex flex-wrap gap-3">
+                                      <a
+                                        href="https://chat.whatsapp.com/GXtKCOh8VZuF5otSjnSH2i?mode=wwt"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm"
+                                      >
+                                        <FaWhatsapp className="text-base" /> WhatsApp Group
+                                      </a>
+                                      <a
+                                        href="https://whatsapp.com/channel/0029VbB2aOZ9WtC5F6muRh3W"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/90 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm"
+                                      >
+                                        <FaWhatsapp className="text-base" /> WhatsApp Channel
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
                             </div>
+
                         </div>
                     </div>
                 </div>

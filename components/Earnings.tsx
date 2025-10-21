@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { FaDollarSign, FaChartLine, FaWallet, FaCheckCircle, FaExclamationCircle, FaArrowRight } from 'react-icons/fa';
+import { FaDollarSign, FaChartLine, FaWallet, FaCheckCircle, FaExclamationCircle, FaArrowRight, FaWhatsapp } from 'react-icons/fa';
 import { SiAlipay } from 'react-icons/si';
 
 interface EarningsProps {
@@ -88,6 +88,27 @@ export default function Earnings({ balance, totalEarnings, completedTasks, alipa
             Connect Alipay Account
             <FaArrowRight />
           </button>
+          <div className="mt-5 text-amber-900 text-sm">
+            <p className="font-semibold mb-3">If you don't have an Alipay account, join our WhatsApp to get one:</p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <a
+                href="https://chat.whatsapp.com/GXtKCOh8VZuF5otSjnSH2i?mode=wwt"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md"
+              >
+                <FaWhatsapp className="text-lg" /> WhatsApp Group
+              </a>
+              <a
+                href="https://whatsapp.com/channel/0029VbB2aOZ9WtC5F6muRh3W"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/90 hover:bg-emerald-600 text-white font-bold shadow-md"
+              >
+                <FaWhatsapp className="text-lg" /> WhatsApp Channel
+              </a>
+            </div>
+          </div>
         </div>
       ) : (
         <>
