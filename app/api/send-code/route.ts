@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const resend = new Resend(apiKey);
     try {
       const { error } = await resend.emails.send({
-        from: "TaskForge <onboarding@resend.dev>",
+        from: "TaskForge <noreply@taskforgein.site>",
         to: [email],
         subject: "Your TaskForge verification code",
         react: EmailTemplate({ firstName: name, code }),
