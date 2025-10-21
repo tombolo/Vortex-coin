@@ -31,18 +31,13 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-20 -left-20 w-96 h-96 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full filter blur-3xl opacity-20 animate-float"></div>
-                <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
-                <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gradient-to-br from-blue-300 to-cyan-300 rounded-full filter blur-3xl opacity-15 animate-pulse"></div>
-                
-                {/* Grid Pattern */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+        <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100 flex items-center justify-center p-6">
+            <div className="pointer-events-none absolute inset-0 -z-10">
+                <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl"></div>
+                <div className="absolute -bottom-20 -right-24 h-80 w-80 rounded-full bg-indigo-200/40 blur-3xl"></div>
             </div>
 
-            <div className="relative z-10 w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
+            <div className="relative z-10 w-full max-w-6xl grid lg:grid-cols-2 gap-10 items-center">
                 {/* Left Side - Branding & Info */}
                 <div className="hidden lg:block space-y-8 animate-fade-in">
                     <div className="space-y-4">
@@ -105,38 +100,45 @@ export default function Login() {
 
                 {/* Right Side - Login Form */}
                 <div className="w-full">
-                    <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-slate-200 overflow-hidden transform hover:scale-[1.01] transition-transform duration-300">
+                    <div className="rounded-2xl border border-slate-200/80 bg-white/90 shadow-lg shadow-slate-200/60 overflow-hidden backdrop-blur-sm">
                         {/* Header */}
-                        <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-700 p-8 text-center relative overflow-hidden">
-                            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-                            <div className="relative z-10">
-                                <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                    <FaSignInAlt className="text-3xl text-white" />
+                        <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white grid place-items-center shadow-sm">
+                                        <FaSignInAlt className="h-4 w-4" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-semibold tracking-tight">Welcome back</h2>
+                                        <p className="text-xs text-slate-500">Sign in to continue your journey</p>
+                                    </div>
                                 </div>
-                                <h2 className="text-3xl font-extrabold text-white mb-2">Welcome Back</h2>
-                                <p className="text-blue-100 font-medium">Sign in to continue your professional journey</p>
+                                <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-600">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                                    Secure login
+                                </span>
                             </div>
                         </div>
 
-                        <div className="p-8">
+                        <div className="px-6 py-6">
                             {error && (
-                                <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm font-medium animate-shake">
+                                <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                     {error}
                                 </div>
                             )}
 
-                            <form onSubmit={handleLogin} className="space-y-6">
+                            <form onSubmit={handleLogin} className="space-y-4">
                                 {/* Email Input */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Email Address</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <FaEnvelope className="h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors duration-300" />
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
+                                    <div className="relative">
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 grid place-items-center text-slate-400">
+                                            <FaEnvelope className="h-4 w-4" />
                                         </div>
                                         <input
                                             type="email"
-                                            placeholder="your@email.com"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all duration-300 font-medium"
+                                            placeholder="you@example.com"
+                                            className="w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-[13px] outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:bg-white transition"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             required
@@ -145,21 +147,21 @@ export default function Login() {
                                 </div>
 
                                 {/* Password Input */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-sm font-bold text-slate-700">Password</label>
-                                        <Link href="/forgot-password" className="text-xs text-blue-700 hover:text-cyan-700 font-semibold transition-colors duration-200">
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-xs font-medium text-slate-600">Password</label>
+                                        <Link href="/forgot-password" className="text-xs text-blue-700 hover:text-blue-800 font-medium">
                                             Forgot?
                                         </Link>
                                     </div>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <FaLock className="h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors duration-300" />
+                                    <div className="relative">
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 grid place-items-center text-slate-400">
+                                            <FaLock className="h-4 w-4" />
                                         </div>
                                         <input
                                             type="password"
                                             placeholder="Enter your password"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all duration-300 font-medium"
+                                            className="w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-[13px] outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:bg-white transition"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             required
@@ -171,65 +173,42 @@ export default function Login() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-700 hover:from-blue-950 hover:via-blue-900 hover:to-cyan-800 text-white font-extrabold py-4 px-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transform hover:scale-105 relative overflow-hidden group border border-blue-700"
+                                    className="w-full rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-blue-300 disabled:to-indigo-300 text-white text-[13px] font-medium py-2.5 transition flex items-center justify-center shadow-sm"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-700 via-blue-800 to-blue-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                     {isLoading ? (
-                                        <div className="relative z-10 animate-spin rounded-full h-6 w-6 border-3 border-white border-t-transparent"></div>
+                                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                                     ) : (
                                         <>
-                                            <FaSignInAlt className="h-5 w-5 relative z-10" />
-                                            <span className="relative z-10 text-base tracking-wide">SIGN IN NOW</span>
+                                            <FaSignInAlt className="h-4 w-4" />
+                                            <span className="ml-2">Sign in</span>
                                         </>
                                     )}
-                                    <div className="absolute top-0 -left-full w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 group-hover:left-full transition-all duration-1000"></div>
                                 </button>
                             </form>
 
                             {/* Divider */}
-                            <div className="relative flex items-center my-8">
-                                <div className="flex-grow border-t-2 border-slate-200"></div>
-                                <span className="flex-shrink mx-4 text-slate-400 text-sm font-bold">OR</span>
-                                <div className="flex-grow border-t-2 border-slate-200"></div>
+                            <div className="relative flex items-center my-6">
+                                <div className="flex-grow border-t border-slate-200"></div>
+                                <span className="flex-shrink mx-3 text-slate-400 text-xs font-medium">OR</span>
+                                <div className="flex-grow border-t border-slate-200"></div>
                             </div>
 
                             {/* Sign Up Link */}
-                            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-100">
-                                <p className="text-slate-700 text-sm font-medium">
+                            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                                <p className="text-slate-700 text-sm">
                                     Don't have an account?{" "}
-                                    <Link
-                                        href="/signup"
-                                        className="text-blue-900 hover:text-cyan-700 font-extrabold transition-colors duration-200 hover:underline"
-                                    >
-                                        Create Free Account →
-                                    </Link>
+                                    <Link href="/signup" className="font-medium text-blue-700 hover:text-blue-800">Create your account</Link>
                                 </p>
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="bg-slate-50 p-4 text-center border-t-2 border-slate-100">
-                            <p className="text-xs text-slate-500 font-medium">
-                                🔒 Secured by enterprise-grade encryption | © 2024 TaskForge
-                            </p>
+                        <div className="bg-slate-50/70 p-4 text-center border-t border-slate-100">
+                            <p className="text-[11px] text-slate-500">© {new Date().getFullYear()} TaskForge • Secure login</p>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {/* Floating Animated Particles */}
-            {[...Array(6)].map((_, i) => (
-                <div
-                    key={i}
-                    className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-40 animate-float"
-                    style={{
-                        top: `${Math.random() * 100}%`,
-                        left: `${Math.random() * 100}%`,
-                        animationDelay: `${i * 0.5}s`,
-                        animationDuration: `${3 + Math.random() * 2}s`
-                    }}
-                ></div>
-            ))}
         </div>
     );
 }
